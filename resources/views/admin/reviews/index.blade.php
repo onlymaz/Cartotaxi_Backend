@@ -48,6 +48,20 @@
                         </div>
                     </div>
                     <div class="review-meta">
+                        @if(!is_null($rating))
+                            <span class="review-stars" title="{{ $rating }} out of 5">
+                                @for($s = 1; $s <= 5; $s++)
+                                    @if($rating >= $s)
+                                        <i class="fas fa-star"></i>
+                                    @elseif($rating >= $s - 0.5)
+                                        <i class="fas fa-star-half-alt"></i>
+                                    @else
+                                        <i class="far fa-star"></i>
+                                    @endif
+                                @endfor
+                                <span class="review-stars-num">{{ rtrim(rtrim(number_format((float) $rating, 1), '0'), '.') }}</span>
+                            </span>
+                        @endif
                         @if($order)
                             <span class="review-order">Order #{{ $order->id }}</span>
                         @endif
@@ -97,6 +111,9 @@
     .review-name { font-weight: 600; color: var(--ct-gray-900); }
     .review-email { font-size: 0.75rem; color: var(--ct-gray-500); }
     .review-meta { text-align: right; display: flex; flex-direction: column; gap: 0.25rem; align-items: flex-end; }
+    .review-stars { color: #f59e0b; font-size: 0.8125rem; letter-spacing: 1px; white-space: nowrap; }
+    .review-stars .far { color: var(--ct-gray-300); }
+    .review-stars-num { margin-left: 0.3rem; color: var(--ct-gray-700); font-weight: 700; font-size: 0.75rem; letter-spacing: 0; }
     .review-order { display: inline-block; padding: 2px 8px; background: #eef2ff; color: #4338ca; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
     .review-date { font-size: 0.75rem; color: var(--ct-gray-500); }
     .review-subject { font-size: 0.8125rem; margin-bottom: 0.5rem; }
