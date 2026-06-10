@@ -213,7 +213,8 @@
     <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
-    <script src="{{ url('js/bootstrap.min.js') }}"></script>
+    {{-- js/bootstrap.min.js removed: the file doesn't exist (404 on every
+         page) and this layout ships its own $.fn.modal shim below. --}}
     
     <script>
         // Mobile menu

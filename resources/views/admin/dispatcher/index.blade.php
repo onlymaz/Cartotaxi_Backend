@@ -1,7 +1,6 @@
 @extends('layouts.modern')
 @section('title')
     <title>Dispatcher | {{ config('app.name', 'Laravel') }}</title>
-    <link rel="stylesheet" type="text/css" href="{{ url('css/jquery.datetimepicker.css') }}">
 @stop
 
 @php
@@ -806,7 +805,8 @@
 @endsection
 
 @section('scripts')
-    <script type="text/javascript" src="{{ url('js/build/jquery.datetimepicker.full.min.js') }}"></script>
+    {{-- jquery.datetimepicker assets removed: files don't exist (404) and
+         nothing on this page calls .datetimepicker(). --}}
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     @include('admin.dispatcher.dispatcher_scripts')

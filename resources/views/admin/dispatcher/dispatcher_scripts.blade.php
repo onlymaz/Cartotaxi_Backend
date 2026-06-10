@@ -161,12 +161,18 @@
                         DrawLineOnMap(start_address,end_address);
                     }
 
-                    $('.scrollbar').perfectScrollbar();
+                    // perfectScrollbar shipped with the old theme; the plugin
+                    // is no longer loaded, so guard to avoid a TypeError.
+                    if ($.fn.perfectScrollbar) {
+                        $('.scrollbar').perfectScrollbar();
+                    }
                 }
             });
         }
 
-        $('body').on('click', '.Content li a', function () {
+        // .tabset-link covers both the tab list (.Content li a) and the
+        // "New Order" button in the page header, which sits outside the tabs.
+        $('body').on('click', '.tabset-link', function () {
             var elem = $(this);
             var type = elem.attr('type');
             var url = elem.attr('url');
@@ -731,7 +737,11 @@
 
 
         const unit_price = $('input[name="unit_price"]').val();
-        if (document.getElementById("start_address").value != '' && document.getElementById("end_address").value != '') {
+        // The create form is loaded/replaced via ajax; a stale autocomplete
+        // listener can fire after the inputs are gone, so guard for null.
+        const startAddressEl = document.getElementById("start_address");
+        const endAddressEl = document.getElementById("end_address");
+        if (startAddressEl && endAddressEl && startAddressEl.value != '' && endAddressEl.value != '') {
             showLoader();
             directionsService.route(
                 {
