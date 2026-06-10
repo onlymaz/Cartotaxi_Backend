@@ -10,7 +10,7 @@
     "require": {
         "php": "^7.3|^8.0",
         "doctrine/dbal": "^2.10",
-        "firebase/php-jwt": "^6.0",
+        "firebase/php-jwt": "^7.0",
         "fruitcake/laravel-cors": "^2.0",
         "google/auth": "^1.18",
         "guzzlehttp/guzzle": "^7.0",
@@ -19,13 +19,13 @@
         "laravel/socialite": "^5.0",
         "laravel/tinker": "^2.0",
         "laravel/ui": "^3.0",
+        "sentry/sentry-laravel": "^2.11",
         "sofort/sofortlib-php": "3.*",
         "spatie/geocoder": "^3.9",
         "twilio/sdk": "^6.9",
         "yajra/laravel-datatables-buttons": "^4.0",
         "yajra/laravel-datatables-html": "^4.0",
-        "yajra/laravel-datatables-oracle": "^9.0",
-        "sentry/sentry-laravel": "^2.11"
+        "yajra/laravel-datatables-oracle": "^9.0"
     },
     "require-dev": {
         "beyondcode/laravel-query-detector": "^1.0",
@@ -45,6 +45,11 @@
         "sort-packages": true,
         "allow-plugins": {
             "php-http/discovery": true
+        },
+        "policy": {
+            "advisories": {
+                "ignore": ["laravel/framework", "firebase/php-jwt"]
+            }
         }
     },
     "extra": {
