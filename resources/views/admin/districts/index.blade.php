@@ -228,7 +228,9 @@
             var id = this.getAttribute('row');
             body.innerHTML = '<div class="zone-modal-loading"><i class="fas fa-spinner fa-spin"></i> Loading map…</div>';
             overlay.classList.add('open');
-            fetch('{{ route("districts.create") }}?id=' + id)
+            // X-Requested-With makes $request->ajax() true so the controller
+            // returns the modal partial instead of redirecting to the index.
+            fetch('{{ route("districts.create") }}?id=' + id, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                 .then(function (r) { return r.text(); })
                 .then(function (html) { body.innerHTML = html; if (typeof initialize === 'function') initialize(); })
                 .catch(function () { body.innerHTML = '<p style="color:#ef4444;padding:2rem;text-align:center">Failed to load map.</p>'; });
@@ -260,94 +262,83 @@
 })();
 </script>
 <script>
-    var drawingManager, selectedShape, polygons = [], colorButtons = {};
-    var colors = ['#1E90FF'];
-    var selectedColor;
+    // Zone polygon editor. google.maps.drawing.DrawingManager was removed from
+    // the Maps JS API (v3.65), so drawing is done with plain editable Polygons:
+    // click the map to add vertices, drag vertices/midpoints to adjust,
+    // right-click a vertex to remove it.
+    var zonePolygon = null;
 
-    function clearSelection() {
-        if (selectedShape) { selectedShape.setEditable(false); selectedShape = null; }
-        pointsToText();
-    }
-    function setSelection(shape) {
-        clearSelection(); selectedShape = shape; shape.setEditable(true);
-        selectColor(shape.get('fillColor') || shape.get('strokeColor'));
-        pointsToText();
-        document.querySelectorAll('.buttonSubmitDistrict').forEach(function(b){b.classList.remove('disabled');});
-    }
-    function deleteSelectedShape() {
-        if (selectedShape) selectedShape.setMap(null);
-        drawingManager.setOptions({ drawingControl: true, drawingMode: google.maps.drawing.OverlayType.POLYGON });
-        polygons = []; pointsToText();
-    }
-    function selectColor(color) {
-        selectedColor = color;
-        for (var i = 0; i < colors.length; ++i) {
-            colorButtons[colors[i]].style.border = colors[i] == color ? '2px solid #789' : '2px solid #fff';
-        }
-        var p = drawingManager.get('polygonOptions'); p.fillColor = color; drawingManager.set('polygonOptions', p);
-    }
-    function makeColorButton(color) {
-        var b = document.createElement('span'); b.className = 'color-button'; b.style.backgroundColor = color;
-        google.maps.event.addDomListener(b, 'click', function(){ selectColor(color); if(selectedShape) selectedShape.set('fillColor', color); });
-        return b;
-    }
-    function buildColorPalette() {
-        var cp = document.getElementById('color-palette');
-        if (!cp) return;
-        for (var i = 0; i < colors.length; ++i) { var cb = makeColorButton(colors[i]); cp.appendChild(cb); colorButtons[colors[i]] = cb; }
-        selectColor(colors[0]);
-    }
-    function initialize() {
-        polygons = [];
-        var polygons_array = document.querySelector('input[name="polygons"]') ? document.querySelector('input[name="polygons"]').value : null;
-        var lat = 48.203231, lng = 16.3667583;
-        if (polygons_array) { try { var pa = JSON.parse(polygons_array); if (pa[1]) { lat = pa[1].lat; lng = pa[1].lng; } } catch(e){} }
-        var map = new google.maps.Map(document.getElementById('map'), {
-            zoom: 13, center: new google.maps.LatLng(lat, lng), mapTypeId: 'roadmap', disableDefaultUI: true, zoomControl: true
-        });
-        var polyOptions = { strokeWeight: 0, fillOpacity: 0.45, editable: true };
-        drawingManager = new google.maps.drawing.DrawingManager({
-            drawingMode: google.maps.drawing.OverlayType.POLYGON, drawingControl: true,
-            drawingControlOptions: { position: google.maps.ControlPosition.TOP_CENTER, drawingModes: ['polygon'] },
-            polygonOptions: polyOptions, map: map
-        });
-        google.maps.event.addListener(drawingManager, 'overlaycomplete', function(e) {
-            if (e.type != google.maps.drawing.OverlayType.MARKER) {
-                drawingManager.setDrawingMode(null);
-                var s = e.overlay; s.type = e.type;
-                google.maps.event.addListener(s, 'click', function(){ setSelection(s); pointsToText(); });
-                setSelection(s);
-                drawingManager.setOptions({ drawingControl: false });
-                polygons.push(e);
-                pointsToText();
-            }
-        });
-        google.maps.event.addListener(drawingManager, 'drawingmode_changed', clearSelection);
-        google.maps.event.addListener(map, 'click', clearSelection);
-        var db = document.getElementById('delete-button');
-        if (db) google.maps.event.addDomListener(db, 'click', deleteSelectedShape);
-        buildColorPalette();
-        if (polygons_array) {
-            try {
-                var pa2 = JSON.parse(polygons_array);
-                var pg = new google.maps.Polygon({ paths: pa2, strokeColor: '#1E90FF', strokeOpacity: 0.8, strokeWeight: 2, fillColor: '#1E90FF', fillOpacity: 0.35, editable: true });
-                pg.setMap(map);
-                drawingManager.setOptions({ drawingControl: false, drawingMode: null });
-                polygons.push({ type: 'polygon', overlay: pg });
-                google.maps.event.addListener(pg, 'click', function(){ setSelection(pg); pointsToText(); });
-                google.maps.event.addListener(pg.getPath(), 'set_at', pointsToText);
-                google.maps.event.addListener(pg.getPath(), 'insert_at', pointsToText);
-            } catch(e){}
-        }
-    }
     function pointsToText() {
-        var data = [];
-        for (var i = 0; i < polygons.length; i++) {
-            var coords = polygons[i].overlay.getPath().getArray();
-            for (var j = 0; j < coords.length; j++) data.push(coords[j].toJSON());
-        }
         var inp = document.querySelector('input[name="polygons"]');
-        if (inp) inp.value = JSON.stringify(data);
+        if (!inp) return;
+        if (!zonePolygon || zonePolygon.getPath().getLength() === 0) { inp.value = ''; return; }
+        inp.value = JSON.stringify(zonePolygon.getPath().getArray().map(function (p) { return p.toJSON(); }));
+        if (zonePolygon.getPath().getLength() >= 3) {
+            document.querySelectorAll('.buttonSubmitDistrict').forEach(function (b) { b.classList.remove('disabled'); });
+        }
+    }
+
+    function bindPathEvents(path) {
+        ['set_at', 'insert_at', 'remove_at'].forEach(function (ev) {
+            google.maps.event.addListener(path, ev, pointsToText);
+        });
+    }
+
+    function makeZonePolygon(map, paths) {
+        var pg = new google.maps.Polygon({
+            paths: paths, strokeColor: '#1E90FF', strokeOpacity: 0.8, strokeWeight: 2,
+            fillColor: '#1E90FF', fillOpacity: 0.35, editable: true
+        });
+        pg.setMap(map);
+        bindPathEvents(pg.getPath());
+        google.maps.event.addListener(pg, 'rightclick', function (e) {
+            if (e.vertex !== undefined && pg.getPath().getLength() > 3) pg.getPath().removeAt(e.vertex);
+        });
+        return pg;
+    }
+
+    function initialize() {
+        var input = document.querySelector('input[name="polygons"]');
+        var existing = null;
+        if (input && input.value) { try { existing = JSON.parse(input.value); } catch (e) {} }
+
+        var center = { lat: 48.203231, lng: 16.3667583 };
+        if (existing && existing.length) center = { lat: existing[0].lat, lng: existing[0].lng };
+
+        var map = new google.maps.Map(document.getElementById('map'), {
+            zoom: existing ? 8 : 11, center: center, mapTypeId: 'roadmap',
+            disableDefaultUI: true, zoomControl: true
+        });
+
+        zonePolygon = null;
+        if (existing && existing.length) {
+            zonePolygon = makeZonePolygon(map, existing);
+            // fit the view to the zone
+            var bounds = new google.maps.LatLngBounds();
+            existing.forEach(function (p) { bounds.extend(p); });
+            map.fitBounds(bounds);
+        }
+
+        // click to draw: first click creates the polygon, further clicks add vertices
+        google.maps.event.addListener(map, 'click', function (e) {
+            if (!zonePolygon) {
+                zonePolygon = makeZonePolygon(map, [e.latLng]);
+            } else {
+                zonePolygon.getPath().push(e.latLng);
+            }
+            pointsToText();
+        });
+
+        var db = document.getElementById('delete-button');
+        if (db) {
+            db.classList.remove('disabled');
+            db.addEventListener('click', function () {
+                if (zonePolygon) { zonePolygon.setMap(null); zonePolygon = null; }
+                pointsToText();
+                document.querySelectorAll('.buttonSubmitDistrict').forEach(function (b) { b.classList.add('disabled'); });
+            });
+        }
+        pointsToText();
     }
 </script>
 @endsection
