@@ -41,8 +41,11 @@
         $('body').on('submit','.ajax-form-update',function(event) {
             event.preventDefault();
             var elem    =   $(this);
-            var url     =   elem.attr('data-url');
-            var data    =   $('.ajax-form-update')[0];
+            // forms set either data-url or a plain action (e.g. the rider
+            // assignment modal); without the fallback the request went to the
+            // current page and 405'd.
+            var url     =   elem.attr('data-url') || elem.attr('action');
+            var data    =   this;
             $('span.input-error').remove();
             var formData = new FormData(data);
             formData.append('_token', $('meta[name=csrf-token]').attr("content"));
@@ -57,18 +60,23 @@
                     if(data.success){
                         loadPageData(data.type,data.url);
                         $('#default_modal').modal('toggle');
-                        toast.success("Rider updated successfully");
+                        toast.success(data.message || "Rider updated successfully");
                     }
                 },
                 error: function (response, exception) {
-                    toast.error("Please resolve following errors");
-                    var errors = JSON.parse(response.responseText).errors;
-                    $.each(errors,function (name,error) {
-                        $('.form-control[name="'+name+'"]').after('<span class="input-error '+name+'">'+error+'</span>');
-                    });
+                    var payload = null;
+                    try { payload = JSON.parse(response.responseText); } catch (e) {}
+                    if (payload && payload.errors) {
+                        toast.error("Please resolve following errors");
+                        $.each(payload.errors,function (name,error) {
+                            $('.form-control[name="'+name+'"]').after('<span class="input-error '+name+'">'+error+'</span>');
+                        });
+                    } else {
+                        toast.error((payload && payload.message) || "Something went wrong, please try again");
+                    }
                 },
             });
-        });         
+        });
         @if(!empty($type))
         loadPageData("{{$type}}","{{$url}}");
         @endif
