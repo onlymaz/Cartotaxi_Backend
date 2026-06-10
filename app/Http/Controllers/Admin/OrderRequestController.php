@@ -276,7 +276,8 @@ class OrderRequestController extends Controller
                 'rider',          // Rider relationship  
                 'package',        // Package relationship
                 'orderSubTrip',   // Order sub trip relationship
-                'payment.gateway' // Payment and gateway relationship
+                'payment.gateway', // Payment and gateway relationship
+                'dispatchLog.rider' // Auto-dispatch offer/transfer history
             ])->findOrFail($id);
             
             // Allow admin users (role_id == 1) to always view orders

@@ -65,6 +65,49 @@
         </div>
         @endif
         
+        @if($order && $order->dispatchLog && $order->dispatchLog->count() > 0)
+        <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--ct-gray-200);">
+            <h4 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: var(--ct-gray-900);">
+                <i class="fas fa-route" style="color: var(--ct-accent); margin-right: 0.375rem;"></i>Dispatch History
+            </h4>
+            @foreach($order->dispatchLog as $offer)
+                @php
+                    $badge = [
+                        'pending'   => ['#fef3c7', '#a16207', 'Waiting for answer'],
+                        'assign'    => ['#dcfce7', '#15803d', 'Accepted'],
+                        'rejected'  => ['#fee2e2', '#b91c1c', 'Declined'],
+                        'expired'   => ['#f1f5f9', '#64748b', 'No answer'],
+                        'deleted'   => ['#f1f5f9', '#64748b', 'No answer'],
+                        'cancelled' => ['#ede9fe', '#6d28d9', 'Superseded'],
+                    ][$offer->assign_status] ?? ['#f1f5f9', '#64748b', ucfirst($offer->assign_status)];
+                @endphp
+                <div style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.625rem 0; border-bottom: 1px solid var(--ct-gray-100);">
+                    <span style="flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; background: var(--ct-accent); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.6875rem; font-weight: 700;">{{ $offer->attempt }}</span>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                            <span style="font-weight: 600; color: var(--ct-gray-900); font-size: 0.875rem;">
+                                {{ $offer->rider ? trim($offer->rider->first_name.' '.$offer->rider->last_name) : 'Rider #'.$offer->rider_id }}
+                            </span>
+                            @if($offer->distance_km)
+                                <span style="font-size: 0.75rem; color: var(--ct-gray-500);">{{ number_format($offer->distance_km, 1) }} km away</span>
+                            @endif
+                            <span style="display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.6875rem; font-weight: 600; background: {{ $badge[0] }}; color: {{ $badge[1] }};">{{ $badge[2] }}</span>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--ct-gray-500); margin-top: 2px;">
+                            Called {{ $offer->created_at->format('M d, H:i:s') }}
+                            @if($offer->responded_at)
+                                · responded {{ $offer->responded_at->format('H:i:s') }} ({{ $offer->created_at->diffInSeconds($offer->responded_at) }}s)
+                            @elseif(in_array($offer->assign_status, ['expired','deleted']))
+                                · timed out
+                            @endif
+                            @if($offer->note) · {{ $offer->note }} @endif
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+        @endif
+
         @if($helper && is_object($helper) && isset($helper->helper))
         <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--ct-gray-200);">
             <h4 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: var(--ct-gray-900);">Helper Details</h4>

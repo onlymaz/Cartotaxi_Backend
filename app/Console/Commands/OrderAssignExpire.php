@@ -11,29 +11,29 @@ class OrderAssignExpire extends Command
 {
     protected $signature = 'assign:order_expire';
 
-    protected $description = 'Expire pending order assignments older than 4 minutes so the order re-queues';
+    protected $description = 'Expire unanswered ride offers so the order moves to the next nearest rider';
 
-    public function __construct()
-    {
-        parent::__construct();
-    }
+    /** Minutes a rider has to answer the call before it transfers. */
+    public const OFFER_TIMEOUT_MINUTES = 4;
 
     public function handle()
     {
-        $assign_orders = OrderAssign::where('assign_status', 'pending')
-            ->where('created_at', '<=', Carbon::now()->subMinutes(4)->format('Y-m-d H:i:s'))
+        $assign_orders = OrderAssign::where('assign_status', OrderAssign::STATUS_PENDING)
+            ->where('created_at', '<=', Carbon::now()->subMinutes(self::OFFER_TIMEOUT_MINUTES))
             ->get();
 
-        foreach ($assign_orders as $order) {
-            $order_id = $order->order_id;
-            $order->update(['assign_status' => 'deleted']);
+        foreach ($assign_orders as $offer) {
+            $offer->update([
+                'assign_status' => OrderAssign::STATUS_EXPIRED,
+                'note'          => 'No answer within ' . self::OFFER_TIMEOUT_MINUTES . ' minutes — transferred to next rider',
+            ]);
 
-            $update_order = Order::find($order_id);
+            $update_order = Order::find($offer->order_id);
             if ($update_order) {
                 $update_order->forceFill(['is_assign' => 0])->save();
             }
 
-            $this->info('Restored order: ' . $order_id);
+            $this->info('Offer ' . $offer->id . ' (order ' . $offer->order_id . ', rider ' . $offer->rider_id . ') expired — order re-queued');
         }
     }
 }

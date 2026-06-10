@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\RiderRequest;
 use App\Http\Requests\UserRequest;
 use App\Models\Order;
+use App\Models\OrderAssign;
 use App\Models\Notification;
 use App\Models\Role;
 use App\Models\User;
@@ -270,6 +271,27 @@ class UserController extends Controller
                 'rider_id'  =>  $request->rider_id,
                 'order_status'=>'processing'
             ]);
+            $order->forceFill(['is_assign' => 1])->save();
+
+            // Keep the dispatch log complete: void any offer still waiting on
+            // a rider, then record the manual assignment as its own entry.
+            OrderAssign::where('order_id', $order->id)
+                ->where('assign_status', OrderAssign::STATUS_PENDING)
+                ->update([
+                    'assign_status' => OrderAssign::STATUS_CANCELLED,
+                    'responded_at'  => now(),
+                    'note'          => 'Superseded — admin assigned a rider manually',
+                ]);
+
+            OrderAssign::create([
+                'order_id'      => $order->id,
+                'rider_id'      => $request->rider_id,
+                'attempt'       => OrderAssign::where('order_id', $order->id)->count() + 1,
+                'assign_status' => OrderAssign::STATUS_ACCEPTED,
+                'responded_at'  => now(),
+                'note'          => 'Manually assigned by ' . trim(auth()->user()->first_name . ' ' . auth()->user()->last_name),
+            ]);
+
             $rider      =   User::where('id',$request->rider_id)->first();
             $customer   =   User::find($order->customer_id);
             $customer_body  =   "Your Booking Order has been assigned to"." ".$rider->first_name ." ".$rider->last_name;

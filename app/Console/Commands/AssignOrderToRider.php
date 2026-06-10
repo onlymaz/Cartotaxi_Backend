@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Notification;
 use App\Models\Order;
 use App\Models\OrderSubTrip;
 use App\Models\User;
@@ -14,18 +15,17 @@ class AssignOrderToRider extends Command
 {
     protected $signature = 'assign:rider';
 
-    protected $description = 'Assign pending orders to the nearest available rider';
+    protected $description = 'Offer pending orders to the nearest available rider, Uber-style: '
+        . 'each rider in the area gets the call once, ordered by distance, until one accepts';
 
     private const BATCH_SIZE           = 50;
     private const MAX_DISTANCE_KM      = 20;
     private const STALE_GPS_MINUTES    = 15;
-    private const REASSIGNABLE_STATUSES = ['rejected', 'deleted'];
+    private const REASSIGNABLE_STATUSES = ['rejected', 'expired', 'deleted'];
     private const ACTIVE_ORDER_STATUSES = ['picking', 'picked_up', 'on_way'];
 
-    public function __construct()
-    {
-        parent::__construct();
-    }
+    /** is_assign value meaning "every nearby rider was tried — needs manual dispatch". */
+    public const DISPATCH_EXHAUSTED = 2;
 
     public function handle()
     {
@@ -46,33 +46,25 @@ class AssignOrderToRider extends Command
                 ->orderBy('id', 'DESC')
                 ->first();
 
-            $excludeRiderId = 0;
-            if ($lastAssign) {
-                if (in_array($lastAssign->assign_status, self::REASSIGNABLE_STATUSES, true)) {
-                    $excludeRiderId = (int) $lastAssign->rider_id;
-                } else {
-                    continue;
-                }
+            // An outstanding pending offer means a rider is still deciding.
+            if ($lastAssign && !in_array($lastAssign->assign_status, self::REASSIGNABLE_STATUSES, true)) {
+                continue;
             }
 
-            $assignedRider = $this->assignToNearestRider(
-                (int) $order->id,
-                $excludeRiderId,
-                $assignedInBatch
-            );
+            $assignedRider = $this->offerToNearestRider($order, $assignedInBatch);
 
             if ($assignedRider !== null) {
                 $assignedInBatch[] = $assignedRider;
-                $this->info('Assigned order ' . $order->id . ' to rider ' . $assignedRider);
+                $this->info('Offered order ' . $order->id . ' to rider ' . $assignedRider);
             } else {
                 $this->info('No available rider for order ' . $order->id);
             }
         }
     }
 
-    private function assignToNearestRider(int $orderId, int $excludeRiderId, array $assignedInBatch): ?int
+    private function offerToNearestRider(Order $order, array $assignedInBatch): ?int
     {
-        $orderTrip = OrderSubTrip::where('order_id', $orderId)
+        $orderTrip = OrderSubTrip::where('order_id', $order->id)
             ->orderBy('id', 'ASC')
             ->first();
 
@@ -83,7 +75,14 @@ class AssignOrderToRider extends Command
         $orderLat = (float) $orderTrip->start_lat;
         $orderLng = (float) $orderTrip->start_long;
 
-        $excludeIds = $this->buildExclusionList($excludeRiderId, $assignedInBatch);
+        // Every rider who already got the call for this order — the chain only
+        // ever moves forward, so nobody is rung twice for the same ride.
+        $alreadyOffered = OrderAssign::where('order_id', $order->id)
+            ->pluck('rider_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $excludeIds = $this->buildExclusionList($alreadyOffered, $assignedInBatch);
 
         $distanceFormula = '( 6371 * acos( cos( radians(?) ) * cos( radians( u.lat ) ) '
             . '* cos( radians( u.long ) - radians(?) ) '
@@ -91,10 +90,11 @@ class AssignOrderToRider extends Command
 
         $staleThreshold = Carbon::now()->subMinutes(self::STALE_GPS_MINUTES);
 
-        $query = User::from('users as u')
-            ->select('u.id', 'u.first_name', 'u.last_name', 'u.email', 'u.profile_image', 'u.fcm_token')
+        $inRange = User::from('users as u')
+            ->select('u.id', 'u.fcm_token')
             ->selectRaw($distanceFormula . ' AS distance', [$orderLat, $orderLng, $orderLat])
             ->where('u.role_id', 2)
+            ->where('u.IsActive', 1)
             ->whereNotNull('u.lat')
             ->whereNotNull('u.long')
             ->where('u.lat', '<>', '')
@@ -106,33 +106,40 @@ class AssignOrderToRider extends Command
                 $orderLat,
                 self::MAX_DISTANCE_KM,
             ])
-            ->orderBy('distance', 'ASC');
+            ->orderBy('distance', 'ASC')
+            ->get();
 
-        if (!empty($excludeIds)) {
-            $query->whereNotIn('u.id', $excludeIds);
-        }
-
-        $nearest = $query->first();
+        $nearest = $inRange->first(fn ($rider) => !in_array((int) $rider->id, $excludeIds, true));
 
         if (!$nearest) {
+            // Every in-range rider has already had the call for this order:
+            // stop auto-dispatch and hand the order to a human dispatcher.
+            $inRangeIds = $inRange->pluck('id')->map(fn ($id) => (int) $id)->all();
+            $exhausted = !empty($alreadyOffered)
+                && !empty($inRangeIds)
+                && empty(array_diff($inRangeIds, $alreadyOffered));
+
+            if ($exhausted) {
+                $this->escalateToAdmins($order, count($alreadyOffered));
+            }
+
             return null;
         }
 
         OrderAssign::create([
-            'order_id'      => $orderId,
+            'order_id'      => $order->id,
             'rider_id'      => $nearest->id,
-            'assign_status' => 'pending',
+            'attempt'       => count($alreadyOffered) + 1,
+            'distance_km'   => round((float) $nearest->distance, 2),
+            'assign_status' => OrderAssign::STATUS_PENDING,
         ]);
 
-        $order = Order::find($orderId);
-        if ($order) {
-            $order->forceFill(['is_assign' => 1])->save();
-        }
+        $order->forceFill(['is_assign' => 1])->save();
 
         try {
             FireBaseMessaging::send_notification(
                 $nearest->fcm_token,
-                'New booking nearby — Booking-Id: ' . $orderId,
+                'New booking nearby — Booking-Id: ' . $order->id,
                 'Assign Order',
                 $order,
                 '',
@@ -145,10 +152,38 @@ class AssignOrderToRider extends Command
         return (int) $nearest->id;
     }
 
-    private function buildExclusionList(int $excludeRiderId, array $assignedInBatch): array
+    private function escalateToAdmins(Order $order, int $attempts): void
     {
-        // Riders already holding an outstanding pending assignment
-        $pendingAssignmentIds = OrderAssign::where('assign_status', 'pending')
+        $order->forceFill(['is_assign' => self::DISPATCH_EXHAUSTED])->save();
+
+        $text = 'Auto-dispatch exhausted for order #' . $order->id
+            . ' (' . ($order->booking_id ?: 'no booking id') . '): '
+            . $attempts . ' rider' . ($attempts === 1 ? '' : 's')
+            . ' called, none accepted. Assign a rider manually.';
+
+        foreach (User::where('role_id', 1)->get() as $admin) {
+            Notification::create([
+                'user_id'        => $admin->id,
+                'user_to_notify' => $admin->id,
+                'notifications_text' => $text,
+            ]);
+
+            try {
+                if ($admin->fcm_web_token) {
+                    FireBaseMessaging::send_notification($admin->fcm_web_token, $text, 'Dispatch needs attention');
+                }
+            } catch (\Throwable $ex) {
+                // Push is best-effort; the Notification row is the source of truth.
+            }
+        }
+
+        $this->warn('Dispatch exhausted for order ' . $order->id . ' after ' . $attempts . ' attempts — escalated to admins');
+    }
+
+    private function buildExclusionList(array $alreadyOffered, array $assignedInBatch): array
+    {
+        // Riders already holding an outstanding pending offer
+        $pendingAssignmentIds = OrderAssign::where('assign_status', OrderAssign::STATUS_PENDING)
             ->pluck('rider_id')
             ->toArray();
 
@@ -163,12 +198,12 @@ class AssignOrderToRider extends Command
             $pendingAssignmentIds,
             $activeOrderIds,
             $assignedInBatch,
-            [$excludeRiderId]
+            $alreadyOffered
         );
 
-        return array_values(array_unique(array_filter(
+        return array_values(array_unique(array_map('intval', array_filter(
             $exclude,
             fn ($id) => (int) $id > 0
-        )));
+        ))));
     }
 }

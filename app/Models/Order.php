@@ -100,6 +100,9 @@ class Order extends Model
     public function orderSubTrip(){
         return $this->hasMany(OrderSubTrip::class, 'order_id','id');
     }
+    public function dispatchLog(){
+        return $this->hasMany(OrderAssign::class, 'order_id','id')->orderBy('id');
+    }
     public function helperOrder(){
         return $this->hasMany(HelperOrder::class, 'order_id','id');
     }

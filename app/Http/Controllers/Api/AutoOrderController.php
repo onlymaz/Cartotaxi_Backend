@@ -223,7 +223,9 @@ class AutoOrderController extends Controller
                         $order->order_status
                     );
                     $order_assign->update([
-                        'assign_status' =>  'assign'
+                        'assign_status' =>  OrderAssign::STATUS_ACCEPTED,
+                        'responded_at'  =>  now(),
+                        'note'          =>  'Rider accepted the ride',
                     ]);
                     return response()->json([
                         'status'       =>  true,
@@ -236,7 +238,9 @@ class AutoOrderController extends Controller
             $order          =   Order::find($order_id);
             if ($order_assign) {
                 $order_assign->update([
-                    'assign_status' =>  'rejected'
+                    'assign_status' =>  OrderAssign::STATUS_REJECTED,
+                    'responded_at'  =>  now(),
+                    'note'          =>  'Rider declined — transferred to next rider',
                 ]);
             }
             if ($order){
