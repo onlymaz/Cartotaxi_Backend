@@ -1,14 +1,24 @@
 @extends('layouts.modern')
 
+@php
+    $pageType = request('type');
+    $pageTitle = ['customer' => 'Customers', 'rider' => 'Riders', 'admin' => 'Admins'][$pageType] ?? 'All Users';
+    $pageSubtitle = [
+        'customer' => 'People who book and pay for deliveries',
+        'rider'    => 'Drivers who pick up and deliver orders',
+        'admin'    => 'Staff accounts with admin access',
+    ][$pageType] ?? 'Manage customers, riders, and admin accounts';
+@endphp
+
 @section('title')
-    <title>Users | {{ config('app.name', 'Laravel') }}</title>
+    <title>{{ $pageTitle }} | {{ config('app.name', 'Laravel') }}</title>
 @stop
 
 @section('content')
 <div class="ct-page-header">
     <div>
-        <h1 class="ct-page-title">Users</h1>
-        <p class="ct-page-subtitle">Manage customers, riders, and admin accounts</p>
+        <h1 class="ct-page-title">{{ $pageTitle }}</h1>
+        <p class="ct-page-subtitle">{{ $pageSubtitle }}</p>
     </div>
     <div class="ct-page-actions">
         <button class="ct-btn ct-btn-outline Reload">
@@ -18,6 +28,19 @@
             <i class="fas fa-plus"></i> Add User
         </a>
     </div>
+</div>
+
+{{-- Account type pages --}}
+<div class="usr-type-tabs">
+    <a href="{{ route('users.index', ['type' => 'customer']) }}" class="ct-btn {{ $pageType === 'customer' ? 'ct-btn-primary' : 'ct-btn-outline' }}">
+        <i class="fas fa-user"></i> Customers <span class="usr-tab-count">{{ $stats['customers'] }}</span>
+    </a>
+    <a href="{{ route('users.index', ['type' => 'rider']) }}" class="ct-btn {{ $pageType === 'rider' ? 'ct-btn-primary' : 'ct-btn-outline' }}">
+        <i class="fas fa-motorcycle"></i> Riders <span class="usr-tab-count">{{ $stats['riders'] }}</span>
+    </a>
+    <a href="{{ route('users.index') }}" class="ct-btn {{ !$pageType ? 'ct-btn-primary' : 'ct-btn-outline' }}">
+        <i class="fas fa-users"></i> All Users <span class="usr-tab-count">{{ $stats['total'] }}</span>
+    </a>
 </div>
 
 <div class="ct-stats-grid" style="margin-bottom:1.5rem;">
@@ -72,6 +95,8 @@
 </div>
 
 <style>
+    .usr-type-tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .usr-tab-count { display: inline-block; margin-left: 0.375rem; padding: 1px 8px; border-radius: 999px; background: rgba(0,0,0,.12); font-size: 0.6875rem; font-weight: 700; }
     .usr-filter-bar { display: flex; align-items: center; gap: 1rem; padding: 0.875rem 1.25rem; border-bottom: 1px solid var(--ct-gray-100); background: var(--ct-gray-50); flex-wrap: wrap; }
     .usr-type-pills { display: flex; gap: 0.5rem; flex-wrap: wrap; }
     .usr-pill { display: flex; align-items: center; cursor: pointer; }

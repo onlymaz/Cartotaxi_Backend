@@ -59,7 +59,19 @@
     <div class="ct-nav-title">Users</div>
     <ul class="ct-nav-menu">
         <li class="ct-nav-item">
-            <a href="{{ route('users.index') }}" class="ct-nav-link {{ Request::is('users') ? 'active' : '' }}">
+            <a href="{{ route('users.index', ['type' => 'customer']) }}" class="ct-nav-link {{ Request::is('users') && request('type') === 'customer' ? 'active' : '' }}">
+                <span class="ct-nav-icon"><i class="fas fa-user"></i></span>
+                <span>Customers</span>
+            </a>
+        </li>
+        <li class="ct-nav-item">
+            <a href="{{ route('users.index', ['type' => 'rider']) }}" class="ct-nav-link {{ Request::is('users') && request('type') === 'rider' ? 'active' : '' }}">
+                <span class="ct-nav-icon"><i class="fas fa-motorcycle"></i></span>
+                <span>Riders</span>
+            </a>
+        </li>
+        <li class="ct-nav-item">
+            <a href="{{ route('users.index') }}" class="ct-nav-link {{ Request::is('users') && !request('type') ? 'active' : '' }}">
                 <span class="ct-nav-icon"><i class="fas fa-users"></i></span>
                 <span>All Users</span>
             </a>
