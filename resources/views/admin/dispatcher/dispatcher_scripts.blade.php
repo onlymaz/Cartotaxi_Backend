@@ -681,7 +681,7 @@
             else if(Index == 1){
                 $('input[name="end_location"]').val('').attr('district_id',district_id);
             }
-            toast.error("Your location are outside the selection area");
+            toast.error("This address is outside our service area (Vienna & Lower Austria)");
             hideLoader();
         }
     }
@@ -696,8 +696,9 @@
         return 0;
     }
     function setMapOnAll(map) {
+        // markers is sparse (slots 0/1/2 are assigned independently), so skip holes
         for (let i = 0; i < markers.length; i++) {
-            markers[i].setMap(map);
+            if (markers[i]) markers[i].setMap(map);
         }
     }
 
