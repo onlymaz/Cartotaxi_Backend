@@ -48,7 +48,9 @@
         },
         "policy": {
             "advisories": {
-                "ignore": ["laravel/framework", "firebase/php-jwt"]
+                "ignore": {
+                    "laravel/framework": "CVE-2025-27515 fixed only in Laravel >=10.48.29; mitigated by FormRequest mime+size validation, tracked for framework major upgrade"
+                }
             }
         }
     },
