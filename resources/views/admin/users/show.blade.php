@@ -76,7 +76,7 @@
             <div class="ct-card pstat"><div class="pstat-num">{{ $orderStats['total'] }}</div><div class="pstat-label">{{ $isRider ? 'Orders delivered for' : 'Orders placed' }}</div></div>
             <div class="ct-card pstat"><div class="pstat-num ok">{{ $orderStats['delivered'] }}</div><div class="pstat-label">Completed</div></div>
             <div class="ct-card pstat"><div class="pstat-num bad">{{ $orderStats['cancelled'] }}</div><div class="pstat-label">Cancelled / refused</div></div>
-            <div class="ct-card pstat"><div class="pstat-num">${{ number_format((float) $orderStats['spent'], 2) }}</div><div class="pstat-label">{{ $isRider ? 'Revenue delivered' : 'Total spent' }}</div></div>
+            <div class="ct-card pstat"><div class="pstat-num">{{ config('app.currency_symbol') }}{{ number_format((float) $orderStats['spent'], 2) }}</div><div class="pstat-label">{{ $isRider ? 'Revenue delivered' : 'Total spent' }}</div></div>
         </div>
 
         <div class="ct-card">
@@ -105,7 +105,7 @@
                                         {{ \Illuminate\Support\Str::limit($order->end_location, 28) }}
                                     </td>
                                     <td>{{ $other ? trim($other->first_name.' '.$other->last_name) : '—' }}</td>
-                                    <td class="mono">${{ number_format((float) $order->total_amount, 2) }}</td>
+                                    <td class="mono">{{ config('app.currency_symbol') }}{{ number_format((float) $order->total_amount, 2) }}</td>
                                     <td><span class="status-pill st-{{ $order->order_status }}">{{ str_replace('_',' ', ucfirst($order->order_status)) }}</span></td>
                                     <td>{{ optional($order->created_at)->format('M d, Y H:i') }}</td>
                                 </tr>

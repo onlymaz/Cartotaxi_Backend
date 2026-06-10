@@ -1,1 +1,1 @@
-{{env('CURRENCY'). $row->total_amount}}
+{{config('app.currency_symbol'). $row->total_amount}}

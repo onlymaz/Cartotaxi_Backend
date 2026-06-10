@@ -133,6 +133,13 @@ return [
     'jwt_ttl' => (int) env('JWT_TTL_SECONDS', 86400),
 
     /*
+    | Display currency. Always read these via config('app.currency_symbol') —
+    | env() calls outside config files return null once config:cache runs.
+    */
+    'currency' => env('CURRENCY', 'EUR'),
+    'currency_symbol' => env('CURRENCY_SYMBOL', '€'),
+
+    /*
     |--------------------------------------------------------------------------
     | Autoloaded Service Providers
     |--------------------------------------------------------------------------

@@ -114,7 +114,7 @@ class DispatcherController extends Controller
                 if ($request['action'] == 'add'){
                     $view_data  =   'create';
                     $price      =   env('PACKAGE_PRICE');
-                    $currency   =   env('CURRENCY');
+                    $currency   =   config('app.currency_symbol');
                     $districts  =   CityDistrict::select('id','polygons')
                         ->where('polygons','<>','')
                         ->where('IsActive',1)

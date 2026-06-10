@@ -63,7 +63,7 @@ class DashboardController extends Controller
     {
         $view_data  =   'create';
         $price      =   0;
-        $currency   =   env('CURRENCY');
+        $currency   =   config('app.currency_symbol');
         $districts  =   CityDistrict::select('id','polygons')
             ->where('polygons','<>','')
             ->where('IsActive',1)

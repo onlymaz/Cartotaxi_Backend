@@ -178,10 +178,10 @@
                     <div class="flex justify-between items-start">
                         <div>
                             <p class="text-indigo-100 font-medium mb-1">{{__('messages.revenue')}}</p>
-                            <h3 class="text-3xl font-bold">{!!env('CURRENCY_SYMBOL'). number_format((float)$stats['revenue'], 2, '.', '')!!}</h3>
+                            <h3 class="text-3xl font-bold">{!!config('app.currency_symbol'). number_format((float)$stats['revenue'], 2, '.', '')!!}</h3>
                         </div>
                         <div class="bg-white bg-opacity-20 p-2 rounded-lg">
-                            <i class="fas fa-dollar-sign text-white"></i>
+                            <i class="fas fa-euro-sign text-white"></i>
                         </div>
                     </div>
                 </div>
@@ -193,7 +193,7 @@
                     <div class="flex justify-between items-start">
                         <div>
                             <p class="text-gray-500 font-medium mb-1">{{__('messages.pending_revenue')}}</p>
-                            <h3 class="text-3xl font-bold text-gray-900">{!! env('CURRENCY_SYMBOL'). number_format((float)$stats['pending_revenue'], 2, '.', '') !!}</h3>
+                            <h3 class="text-3xl font-bold text-gray-900">{!! config('app.currency_symbol'). number_format((float)$stats['pending_revenue'], 2, '.', '') !!}</h3>
                         </div>
                         <div class="bg-yellow-50 text-yellow-600 p-2 rounded-lg">
                             <i class="fas fa-hourglass-half"></i>
@@ -223,28 +223,28 @@
             <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
                 <div>
                     <p class="text-xs text-gray-500 font-bold uppercase">COD</p>
-                    <p class="text-lg font-bold text-gray-900">{!!env('CURRENCY_SYMBOL'). number_format((float)$stats['COD'], 2, '.', '')!!}</p>
+                    <p class="text-lg font-bold text-gray-900">{!!config('app.currency_symbol'). number_format((float)$stats['COD'], 2, '.', '')!!}</p>
                 </div>
                 <i class="fas fa-money-bill-wave text-green-500 text-xl"></i>
             </div>
             <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
                 <div>
                     <p class="text-xs text-gray-500 font-bold uppercase">Paypal</p>
-                    <p class="text-lg font-bold text-gray-900">{!!env('CURRENCY_SYMBOL'). number_format((float)$stats['paypal'], 2, '.', '')!!}</p>
+                    <p class="text-lg font-bold text-gray-900">{!!config('app.currency_symbol'). number_format((float)$stats['paypal'], 2, '.', '')!!}</p>
                 </div>
                 <i class="fab fa-paypal text-blue-500 text-xl"></i>
             </div>
             <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
                 <div>
                     <p class="text-xs text-gray-500 font-bold uppercase">Stripe</p>
-                    <p class="text-lg font-bold text-gray-900">{!!env('CURRENCY_SYMBOL'). number_format((float)$stats['stripe'], 2, '.', '')!!}</p>
+                    <p class="text-lg font-bold text-gray-900">{!!config('app.currency_symbol'). number_format((float)$stats['stripe'], 2, '.', '')!!}</p>
                 </div>
                 <i class="fab fa-stripe text-indigo-500 text-xl"></i>
             </div>
             <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
                 <div>
                     <p class="text-xs text-gray-500 font-bold uppercase">Weekly</p>
-                    <p class="text-lg font-bold text-gray-900">{!!env('CURRENCY_SYMBOL'). number_format((float)$stats['weekly'], 2, '.', '')!!}</p>
+                    <p class="text-lg font-bold text-gray-900">{!!config('app.currency_symbol'). number_format((float)$stats['weekly'], 2, '.', '')!!}</p>
                 </div>
                 <i class="fas fa-calendar-week text-purple-500 text-xl"></i>
             </div>

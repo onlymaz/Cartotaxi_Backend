@@ -53,7 +53,7 @@
                 <i class="fas fa-euro-sign"></i>
             </div>
         </div>
-        <div class="ct-stat-value" style="color: white;">{{ env('CURRENCY_SYMBOL', '€') }}{{ number_format((float)$stats['revenue'], 2) }}</div>
+        <div class="ct-stat-value" style="color: white;">{{ config('app.currency_symbol') }}{{ number_format((float)$stats['revenue'], 2) }}</div>
         <div class="ct-stat-label" style="color: rgba(255,255,255,0.7);">Total Revenue</div>
     </div>
     

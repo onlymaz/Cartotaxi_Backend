@@ -21,7 +21,7 @@ class PaymentController extends Controller
 
         if (!empty($payments)) {
             foreach ($payments as $payment) {
-                $currencySymbol = env('CURRENCY_SYMBOL', '');
+                $currencySymbol = config('app.currency_symbol');
                 $data['payments']['list'][] = [
                     'id'         => $payment->id,
                     'amount'     => $currencySymbol . $payment->amount,

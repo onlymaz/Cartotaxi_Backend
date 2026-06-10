@@ -48,7 +48,7 @@
 
             <dt style="font-weight: 600; color: var(--ct-gray-700);">{{__('messages.total_amount', [], 'en') ?: 'Total Amount'}}:</dt>
             <dd style="color: var(--ct-gray-900); font-weight: 600; color: var(--ct-accent);">
-                {{env('CURRENCY_SYMBOL', '€')}}{{number_format((float)$order->total_amount, 2, '.', '')}}
+                {{config('app.currency_symbol')}}{{number_format((float)$order->total_amount, 2, '.', '')}}
             </dd>
             
             <dt style="font-weight: 600; color: var(--ct-gray-700);">{{__('messages.ride_status', [], 'en') ?: 'Ride Status'}}:</dt>

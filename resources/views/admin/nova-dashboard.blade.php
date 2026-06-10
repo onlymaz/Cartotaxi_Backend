@@ -62,7 +62,7 @@
                 <i class="fas fa-arrow-up"></i> 12%
             </div>
         </div>
-        <div class="nova-stat-value">{{ env('CURRENCY_SYMBOL', '€') }}{{ number_format((float)$stats['revenue'], 2) }}</div>
+        <div class="nova-stat-value">{{ config('app.currency_symbol') }}{{ number_format((float)$stats['revenue'], 2) }}</div>
         <div class="nova-stat-label">Total Revenue</div>
     </div>
     
@@ -187,7 +187,7 @@
                             <i class="fas fa-money-bill-wave" style="color: #22c55e;"></i>
                             <span style="font-weight: 500;">Cash on Delivery</span>
                         </div>
-                        <span style="font-weight: 600;">{{ env('CURRENCY_SYMBOL', '€') }}{{ number_format((float)$stats['COD'], 2) }}</span>
+                        <span style="font-weight: 600;">{{ config('app.currency_symbol') }}{{ number_format((float)$stats['COD'], 2) }}</span>
                     </div>
                     <div class="nova-progress">
                         <div class="nova-progress-bar" style="width: {{ $stats['revenue'] > 0 ? ($stats['COD'] / $stats['revenue'] * 100) : 0 }}%; background: #22c55e;"></div>
@@ -201,7 +201,7 @@
                             <i class="fab fa-paypal" style="color: #3b82f6;"></i>
                             <span style="font-weight: 500;">PayPal</span>
                         </div>
-                        <span style="font-weight: 600;">{{ env('CURRENCY_SYMBOL', '€') }}{{ number_format((float)$stats['paypal'], 2) }}</span>
+                        <span style="font-weight: 600;">{{ config('app.currency_symbol') }}{{ number_format((float)$stats['paypal'], 2) }}</span>
                     </div>
                     <div class="nova-progress">
                         <div class="nova-progress-bar" style="width: {{ $stats['revenue'] > 0 ? ($stats['paypal'] / $stats['revenue'] * 100) : 0 }}%; background: #3b82f6;"></div>
@@ -215,7 +215,7 @@
                             <i class="fab fa-stripe" style="color: #6366f1;"></i>
                             <span style="font-weight: 500;">Stripe</span>
                         </div>
-                        <span style="font-weight: 600;">{{ env('CURRENCY_SYMBOL', '€') }}{{ number_format((float)$stats['stripe'], 2) }}</span>
+                        <span style="font-weight: 600;">{{ config('app.currency_symbol') }}{{ number_format((float)$stats['stripe'], 2) }}</span>
                     </div>
                     <div class="nova-progress">
                         <div class="nova-progress-bar" style="width: {{ $stats['revenue'] > 0 ? ($stats['stripe'] / $stats['revenue'] * 100) : 0 }}%; background: #6366f1;"></div>
@@ -229,7 +229,7 @@
                             <i class="fas fa-calendar-week" style="color: #a855f7;"></i>
                             <span style="font-weight: 500;">Weekly Invoice</span>
                         </div>
-                        <span style="font-weight: 600;">{{ env('CURRENCY_SYMBOL', '€') }}{{ number_format((float)$stats['weekly'], 2) }}</span>
+                        <span style="font-weight: 600;">{{ config('app.currency_symbol') }}{{ number_format((float)$stats['weekly'], 2) }}</span>
                     </div>
                     <div class="nova-progress">
                         <div class="nova-progress-bar" style="width: {{ $stats['revenue'] > 0 ? ($stats['weekly'] / $stats['revenue'] * 100) : 0 }}%; background: #a855f7;"></div>
@@ -242,7 +242,7 @@
             <div class="nova-alert nova-alert-warning" style="margin-top: 1.5rem;">
                 <i class="fas fa-hourglass-half nova-alert-icon"></i>
                 <div class="nova-alert-content">
-                    <strong>{{ env('CURRENCY_SYMBOL', '€') }}{{ number_format((float)$stats['pending_revenue'], 2) }}</strong> pending payment
+                    <strong>{{ config('app.currency_symbol') }}{{ number_format((float)$stats['pending_revenue'], 2) }}</strong> pending payment
                 </div>
             </div>
             @endif
@@ -280,7 +280,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <div style="font-size: 0.8125rem; color: var(--color-gray-500); margin-bottom: 0.25rem;">{{ __('messages.pending_revenue') }}</div>
-                <div style="font-size: 1.75rem; font-weight: 700; color: var(--color-gray-900);">{{ env('CURRENCY_SYMBOL', '€') }}{{ number_format((float)$stats['pending_revenue'], 0) }}</div>
+                <div style="font-size: 1.75rem; font-weight: 700; color: var(--color-gray-900);">{{ config('app.currency_symbol') }}{{ number_format((float)$stats['pending_revenue'], 0) }}</div>
             </div>
             <div style="width: 48px; height: 48px; background: rgba(245, 158, 11, 0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #f59e0b; font-size: 1.25rem;">
                 <i class="fas fa-hourglass-half"></i>
