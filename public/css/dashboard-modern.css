@@ -1,0 +1,417 @@
+/* Modern Tailwind-compatible Sidebar Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #F3F4F6;
+}
+
+/* =========================================
+   Sidebar Container
+   ========================================= */
+#nav-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    height: 100vh;
+    background: #1F2937;
+    /* gray-800 */
+    color: #F3F4F6;
+    z-index: 1000;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+    padding-top: 60px;
+    /* Space for logo/header */
+}
+
+/* Scrollbar */
+#nav-sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+#nav-sidebar::-webkit-scrollbar-track {
+    background: #1F2937;
+}
+
+#nav-sidebar::-webkit-scrollbar-thumb {
+    background: #374151;
+    border-radius: 3px;
+}
+
+/* Menu List */
+#nav-sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* Menu Title */
+#nav-sidebar .menu-title {
+    padding: 1.5rem 1.5rem 0.75rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #9CA3AF;
+    /* gray-400 */
+    font-weight: 600;
+}
+
+/* Links */
+#nav-sidebar li a {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    color: #D1D5DB;
+    /* gray-300 */
+    text-decoration: none;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+    border-left: 4px solid transparent;
+}
+
+#nav-sidebar li a:hover {
+    background: #111827;
+    /* gray-900 */
+    color: #fff;
+    border-left-color: #6366F1;
+    /* indigo-500 */
+}
+
+/* Active State */
+#nav-sidebar li.active>a {
+    background: #111827;
+    color: #fff;
+    border-left-color: #6366F1;
+}
+
+/* Icons */
+#nav-sidebar li a i {
+    width: 24px;
+    margin-right: 12px;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+/* Dropdown/Nested Menus */
+#nav-sidebar li.has-child ul {
+    display: none;
+    background: #111827;
+    /* Darker background for nested items */
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+#nav-sidebar li.has-child.open>ul,
+#nav-sidebar li.has-child.active>ul,
+#nav-sidebar li.has-child.has-child-active>ul {
+    display: block;
+}
+
+#nav-sidebar li.has-child ul li a {
+    padding-left: 3.5rem;
+    font-size: 0.9rem;
+    color: #9CA3AF;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+#nav-sidebar li.has-child ul li a:hover,
+#nav-sidebar li.has-child ul li.active a {
+    color: #fff;
+    background: transparent;
+    border-left-color: transparent;
+}
+
+/* =========================================
+   Main Content Area
+   ========================================= */
+#main {
+    margin-left: 260px;
+    transition: margin-left 0.3s ease;
+    min-height: 100vh;
+    padding-top: 80px;
+    /* Push content below fixed header */
+    margin-top: 0;
+}
+
+/* =========================================
+   Header Styles
+   ========================================= */
+#header {
+    position: fixed;
+    top: 0;
+    left: 260px;
+    right: 0;
+    height: 60px;
+    background: #fff;
+    z-index: 999;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    padding: 0 2rem;
+    transition: left 0.3s ease;
+}
+
+/* Header Content Layout */
+#header .container-fluid {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 100%;
+}
+
+/* Logo Area in Sidebar */
+.logo {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    height: 60px;
+    background: #111827;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1001;
+    border-bottom: 1px solid #374151;
+}
+
+.logo img {
+    height: 32px;
+    width: auto;
+    max-width: none;
+}
+
+/* Top Navigation (Right Side) */
+#top-nav {
+    margin-left: auto;
+    /* Push to right */
+    display: block;
+}
+
+.icon-list {
+    display: flex;
+    align-items: center;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 1.5rem;
+    /* Space between items */
+}
+
+.icon-list li {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+/* Dropdowns in Header */
+.icon-list .dropdown-menu {
+    position: absolute;
+    right: 0;
+    left: auto;
+    top: 100%;
+    margin-top: 0.5rem;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    min-width: 12rem;
+    z-index: 1002;
+    display: none;
+}
+
+.icon-list .dropdown-menu.show {
+    display: block;
+}
+
+.icon-list .dropdown.open .dropdown-menu,
+.icon-list .dropdown.show .dropdown-menu {
+    display: block;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.icon-list .dropdown-menu a {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    color: #374151;
+    text-decoration: none;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.icon-list .dropdown-menu a:last-child {
+    border-bottom: none;
+}
+
+.icon-list .dropdown-menu a:hover {
+    background: #F3F4F6;
+    color: #4F46E5;
+    /* Indigo-600 */
+    padding-left: 1.25rem;
+    /* Slide effect */
+}
+
+.icon-list .dropdown-menu a i,
+.icon-list .dropdown-menu a img {
+    margin-right: 0.75rem;
+    width: 20px;
+    text-align: center;
+    color: #9CA3AF;
+}
+
+.icon-list .dropdown.open .dropdown-menu a i,
+.icon-list .dropdown.show .dropdown-menu a i {
+    color: #4F46E5;
+}
+
+.icon-list .dropdown-toggle {
+    background: none;
+    border: none;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #374151;
+    padding: 0;
+}
+
+.icon-list .dropdown-toggle:focus {
+    outline: none;
+}
+
+/* User Image in Header */
+.icon-list .user-img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-right: 0.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.icon-list .user-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Notification Bell */
+.icon-list .fa-bell {
+    font-size: 1.2rem;
+    color: #6B7280;
+    transition: color 0.2s;
+}
+
+.icon-list .fa-bell:hover {
+    color: #4B5563;
+}
+
+/* Language Selector */
+.icon-list .lang img {
+    margin-right: 0.5rem;
+}
+
+/* Nav Opener (Hamburger) */
+.nav-opener {
+    display: none;
+    /* Hidden on desktop */
+    font-size: 1.5rem;
+    color: #374151;
+    cursor: pointer;
+}
+
+/* =========================================
+   Responsive Styles (Mobile)
+   ========================================= */
+@media (max-width: 992px) {
+
+    /* Sidebar hidden by default */
+    #nav-sidebar {
+        transform: translateX(-100%);
+    }
+
+    /* Main content full width */
+    #main {
+        margin-left: 0;
+    }
+
+    /* Header full width */
+    #header {
+        left: 0;
+    }
+
+    /* Logo becomes part of header or hidden/adjusted */
+    .logo {
+        width: auto;
+        position: relative;
+        background: transparent;
+        border: none;
+        height: auto;
+        top: auto;
+        left: auto;
+        z-index: auto;
+    }
+
+    /* Show hamburger menu */
+    .nav-opener {
+        display: block;
+        margin-right: 1rem;
+    }
+
+    /* Align header content to left */
+    #header .container-fluid {
+        justify-content: flex-start;
+    }
+
+    /* Keep icons on right */
+    #top-nav {
+        margin-left: auto;
+    }
+
+    /* When sidebar is active on mobile */
+    body.sidebar-active #nav-sidebar {
+        transform: translateX(0);
+    }
+}
+
+/* =========================================
+   General Utilities / Safety Overrides
+   ========================================= */
+img {
+    max-width: 100%;
+}
+
+.user-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.user-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
