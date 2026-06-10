@@ -7,4 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 class Review extends Model
 {
     protected $fillable =   ['user_id','order_id','types','status','approved'];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
+    public function reviewRatings()
+    {
+        return $this->hasMany(ReviewRating::class, 'review_id', 'id');
+    }
 }
