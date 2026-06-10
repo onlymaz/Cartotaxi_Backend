@@ -7,11 +7,24 @@ use Yajra\DataTables\Facades\DataTables;
 
 class Datatable
 {
-    public static function create($objects,$custom_columns){
+    /**
+     * @param mixed         $objects        Query builder for the table.
+     * @param array         $custom_columns Column name => view partial map.
+     * @param \Closure|null $search_filter  Optional global-search override. When
+     *                                      omitted, Yajra's default per-column
+     *                                      search applies. Callers whose query
+     *                                      uses table aliases (e.g. the orders
+     *                                      screen) pass their own closure —
+     *                                      previously a single hardcoded filter
+     *                                      referencing u/r/orders/g aliases ran
+     *                                      for every table and broke search on
+     *                                      screens without those joins.
+     */
+    public static function create($objects, $custom_columns, ?\Closure $search_filter = null){
 
         $datatable  =   DataTables::of($objects);
         $column_raw =   [];
-        
+
         foreach ($custom_columns as $key=> $column){
             $datatable->addColumn($key,function ($row)use($column){
                 return view($column,compact('row'));
@@ -21,28 +34,11 @@ class Datatable
         if (!empty($column_raw)){
             $datatable->rawColumns($column_raw);
         }
-        
-        // Add custom filtering for customer and rider names
-        $datatable->filter(function ($query) {
-            $request = request();
-            
-            // Global search - search across customer name, rider name, booking ID, status, payment method
-            if ($request->has('search') && $request->search['value']) {
-                $searchValue = $request->search['value'];
-                $query->where(function($q) use ($searchValue) {
-                    $q->where('u.first_name', 'like', '%' . $searchValue . '%')
-                      ->orWhere('u.last_name', 'like', '%' . $searchValue . '%')
-                      ->orWhereRaw("CONCAT(u.first_name, ' ', u.last_name) LIKE ?", ['%' . $searchValue . '%'])
-                      ->orWhere('r.first_name', 'like', '%' . $searchValue . '%')
-                      ->orWhere('r.last_name', 'like', '%' . $searchValue . '%')
-                      ->orWhereRaw("CONCAT(r.first_name, ' ', r.last_name) LIKE ?", ['%' . $searchValue . '%'])
-                      ->orWhere('orders.booking_id', 'like', '%' . $searchValue . '%')
-                      ->orWhere('orders.order_status', 'like', '%' . $searchValue . '%')
-                      ->orWhere('g.name', 'like', '%' . $searchValue . '%');
-                });
-            }
-        });
-        
+
+        if ($search_filter) {
+            $datatable->filter($search_filter);
+        }
+
         $datatable  =   $datatable->make(true);
         return $datatable;
     }

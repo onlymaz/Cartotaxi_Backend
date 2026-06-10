@@ -181,8 +181,26 @@ class OrderRequestController extends Controller
                     $orders->where('orders.order_status', $request->statusFilter);
                 }
 
-                // Pass query builder directly to DataTables (don't call ->get())
-                return Datatable::create($orders, $custom_columns);
+                // Pass query builder directly to DataTables (don't call ->get()).
+                // Global search must target this query's aliases (u = customer,
+                // r = rider, g = gateway) — it used to live inside Datatable::create
+                // where it broke every other screen's search.
+                return Datatable::create($orders, $custom_columns, function ($query) use ($request) {
+                    if ($request->has('search') && $request->search['value']) {
+                        $searchValue = $request->search['value'];
+                        $query->where(function ($q) use ($searchValue) {
+                            $q->where('u.first_name', 'like', '%' . $searchValue . '%')
+                              ->orWhere('u.last_name', 'like', '%' . $searchValue . '%')
+                              ->orWhereRaw("CONCAT(u.first_name, ' ', u.last_name) LIKE ?", ['%' . $searchValue . '%'])
+                              ->orWhere('r.first_name', 'like', '%' . $searchValue . '%')
+                              ->orWhere('r.last_name', 'like', '%' . $searchValue . '%')
+                              ->orWhereRaw("CONCAT(r.first_name, ' ', r.last_name) LIKE ?", ['%' . $searchValue . '%'])
+                              ->orWhere('orders.booking_id', 'like', '%' . $searchValue . '%')
+                              ->orWhere('orders.order_status', 'like', '%' . $searchValue . '%')
+                              ->orWhere('g.name', 'like', '%' . $searchValue . '%');
+                        });
+                    }
+                });
             } catch (\Exception $e) {
                 \Log::error('DataTables AJAX Error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
                 return response()->json([

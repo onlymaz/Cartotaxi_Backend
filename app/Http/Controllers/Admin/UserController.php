@@ -59,19 +59,24 @@ class UserController extends Controller
             return Datatable::create($users, $custom_columns);
         }
 
+        // Column `name`s must match the ajax query above: the users table is
+        // not aliased (the old `u.` prefix broke default search and sorting).
         $columns = [
             ['data' => 'Image', 'name' => 'Image', 'label' => trans('messages.profile_photo')],
-            ['data' => 'first_name', 'name' => 'u.first_name', 'label' => trans('messages.first_name')],
-            ['data' => 'last_name', 'name' => 'u.last_name', 'label' => trans('messages.last_name')],
-            ['data' => 'email', 'name' => 'u.email', 'label' => trans('messages.email')],
+            ['data' => 'first_name', 'name' => 'users.first_name', 'label' => trans('messages.first_name')],
+            ['data' => 'last_name', 'name' => 'users.last_name', 'label' => trans('messages.last_name')],
+            ['data' => 'email', 'name' => 'users.email', 'label' => trans('messages.email')],
             ['data' => 'rider_name', 'name' => 'r.name', 'label' => trans('messages.user_type')],
-            ['data' => 'phone_number', 'name' => 'u.phone_number', 'label' => trans('messages.phone')],
+            ['data' => 'phone_number', 'name' => 'users.phone_number', 'label' => trans('messages.phone')],
             ['data' => 'Status', 'name' => 'Status', 'label' => trans('messages.status')],
             ['data' => 'isWeekly', 'name' => 'isWeekly', 'label' => 'Payment Type'],
             ['data' => 'Action', 'name' => 'Action', 'label' => trans('messages.action')],
         ];
 
         $html = $builder->columns($columns)
+            // Full URL so ?type=customer|rider|admin survives into the ajax
+            // request that actually filters the table (see UserFilter).
+            ->ajax(url()->full())
             ->dom('Bfrtip')
             ->buttons(
                 Button::make('copy'),
@@ -143,9 +148,31 @@ class UserController extends Controller
         ]);
     }
 
-    public function show($id)
+    /**
+     * Admin profile page for a user: identity, account state (active/locked,
+     * verified), and the full order history with totals. For riders the
+     * history lists orders they delivered; for customers, orders they placed.
+     * Authorization runs via authorizeResource + UserPolicy::view.
+     */
+    public function show(User $user)
     {
-        //
+        $user->load('role');
+        $isRider = optional($user->role)->name === 'rider';
+
+        $ordersQuery = Order::with($isRider ? 'user' : 'rider')
+            ->where($isRider ? 'rider_id' : 'customer_id', $user->id)
+            ->orderByDesc('id');
+
+        $orderStats = [
+            'total'     => (clone $ordersQuery)->count(),
+            'delivered' => (clone $ordersQuery)->where('order_status', Order::STATUS_DELIVERED)->count(),
+            'cancelled' => (clone $ordersQuery)->whereIn('order_status', [Order::STATUS_CANCEL, Order::STATUS_REFUSED, Order::STATUS_NOT_RECEIVED])->count(),
+            'spent'     => (clone $ordersQuery)->where('order_status', Order::STATUS_DELIVERED)->sum('total_amount'),
+        ];
+
+        $orders = $ordersQuery->paginate(15)->withQueryString();
+
+        return view('admin.users.show', compact('user', 'orders', 'orderStats', 'isRider'));
     }
 
     public function edit(Request $request, $id)
