@@ -1,5 +1,15 @@
 <?php
 
+/*
+ * Laravel 8 on PHP >= 8.2 triggers engine deprecations in vendor/config code
+ * before the framework's error handler registers, and with display_errors on
+ * they are printed into the response body — corrupting HTML pages and JSON
+ * API responses. Keep deprecations out of the output; exceptions are still
+ * rendered by Laravel itself (APP_DEBUG) and deprecations still reach the log.
+ */
+error_reporting(E_ALL & ~E_DEPRECATED);
+ini_set('display_errors', 'Off');
+
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 
