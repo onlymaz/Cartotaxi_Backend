@@ -22,7 +22,7 @@ class LegacyEndpointCompatTest extends TestCase
     /** @test */
     public function rider_dispatch_aliases_respond()
     {
-        [, $token] = $this->apiUser(['role_id' => 2]);
+        [$rider, $token] = $this->apiUser(['role_id' => 2]);
         $headers = ['Authorization' => 'Bearer ' . $token];
 
         // Offers list (Driver app polls this for incoming calls)
@@ -34,6 +34,12 @@ class LegacyEndpointCompatTest extends TestCase
         $this->withHeaders($headers)->postJson('/api/v1/update-coordinates', [
             'lat' => 48.2085, 'long' => 16.3731,
         ])->assertStatus(200)->assertJson(['status' => true]);
+
+        // The heartbeat must land in users.lat/long: that's what the
+        // assign:rider cron reads to pick the nearest rider.
+        $rider->refresh();
+        $this->assertSame('48.2085', $rider->lat);
+        $this->assertSame('16.3731', $rider->long);
 
         // Accept/reject validation runs (no offer exists, so invalid order)
         $this->withHeaders($headers)->postJson('/api/v1/accept-order', [

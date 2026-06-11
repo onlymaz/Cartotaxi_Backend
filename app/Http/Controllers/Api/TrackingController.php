@@ -32,6 +32,14 @@ class TrackingController extends Controller
             ];
             $reference = 'users/' . $user->id;
             FireBaseRealTimeDatabase::StoreData($reference, $data);
+
+            // The auto-dispatch cron (assign:rider) selects riders by
+            // users.lat/long and treats updated_at as GPS freshness —
+            // Firebase alone would leave every rider invisible to dispatch.
+            $user->forceFill([
+                'lat'  => (string) $request->lat,
+                'long' => (string) $request->long,
+            ])->save();
         }
 
         return response()->json([
