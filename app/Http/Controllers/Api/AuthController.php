@@ -91,7 +91,9 @@ class AuthController extends Controller
         }
 
         $key  = config('app.jwt_secret');
-        $user = User::where('email', $request->email)->first();
+        // Email lookup is case-insensitive: phones routinely capitalize the
+        // first letter, which must not lock the user out.
+        $user = User::whereRaw('LOWER(email) = ?', [strtolower($request->email)])->first();
 
         // Admin accounts cannot log in via the mobile API
         if (isset($user) && $user->role_id == 1) {
@@ -111,12 +113,12 @@ class AuthController extends Controller
         }
 
         $credentials = [
-            'email'    => $request->email,
+            'email'    => $user->email ?? $request->email,
             'password' => $request->password,
         ];
 
         if (Auth::attempt($credentials)) {
-            $user  = User::where('email', '=', $request->email)->first();
+            $user  = User::whereRaw('LOWER(email) = ?', [strtolower($request->email)])->first();
             $now   = now()->timestamp;
             $token = JWT::encode([
                 'iss' => config('app.url'),
@@ -132,6 +134,14 @@ class AuthController extends Controller
             // can never set it from request input.
             $user->access_token = $token;
             $user->fcm_token    = $request->fcm_token;
+            // Both apps send their position at login. Persisting it makes a
+            // freshly signed-in rider immediately visible to auto-dispatch
+            // (which selects riders by users.lat/long + updated_at freshness).
+            if (is_numeric($request->lat) && is_numeric($request->long)
+                && abs((float) $request->lat) <= 90 && abs((float) $request->long) <= 180) {
+                $user->lat  = (string) $request->lat;
+                $user->long = (string) $request->long;
+            }
             $user->save();
             $data_user['user'] = UserHelper::user_stats($user);
             $object            = UserHelper::user_array($user);
@@ -194,7 +204,7 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::whereRaw('LOWER(email) = ?', [strtolower($request->email)])->first();
 
         $invalidCode = static function () {
             return response()->json([
@@ -294,7 +304,7 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $user = User::where('email', '=', $request->email)->first();
+        $user = User::whereRaw('LOWER(email) = ?', [strtolower($request->email)])->first();
         if ($user) {
             $rawCode = (string) random_int(100000, 999999);
             $user->touch();
@@ -458,7 +468,7 @@ class AuthController extends Controller
             ->first();
 
         if (!$user && !empty($identity['email'])) {
-            $user = User::where('email', $identity['email'])->first();
+            $user = User::whereRaw('LOWER(email) = ?', [strtolower($identity['email'])])->first();
         }
 
         if ($user && $user->role_id == 1) {

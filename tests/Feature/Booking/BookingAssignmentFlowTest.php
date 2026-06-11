@@ -102,10 +102,10 @@ class BookingAssignmentFlowTest extends TestCase
         $this->withHeaders(['Authorization' => 'Bearer ' . $customerToken])
             ->getJson('/api/v1/bookings?type=upcoming')
             ->assertStatus(200)
-            ->assertJsonPath('data.data.0.rider_first_name', 'Demo')
-            ->assertJsonPath('data.data.0.rider_last_name', 'Driver')
-            ->assertJsonPath('data.data.0.car_number', 'CT-2026')
-            ->assertJsonPath('data.data.0.rider_id', $rider->id);
+            ->assertJsonPath('data.bookings.data.0.rider_first_name', 'Demo')
+            ->assertJsonPath('data.bookings.data.0.rider_last_name', 'Driver')
+            ->assertJsonPath('data.bookings.data.0.car_number', 'CT-2026')
+            ->assertJsonPath('data.bookings.data.0.rider_id', $rider->id);
     }
 
     /** @test */

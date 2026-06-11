@@ -227,10 +227,12 @@ class BookingController extends Controller
             ->orderBy('orders.updated_at', 'DESC')
             ->paginate(20);
 
+        // Legacy client shape: both iOS apps parse data.bookings (the
+        // paginator object), not data directly.
         return response()->json([
             'status'   => true,
             'messages' => 'Bookings',
-            'data'     => $bookings,
+            'data'     => ['bookings' => $bookings],
         ]);
     }
 
