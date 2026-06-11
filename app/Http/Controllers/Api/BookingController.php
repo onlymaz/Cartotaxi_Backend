@@ -222,17 +222,73 @@ class BookingController extends Controller
                 'orders.id',
                 'pa.status as payment_status',
                 'g.name as gateway_name',
+                'orders.image_name',
                 'orders.created_at as booking_created'
             )
             ->orderBy('orders.updated_at', 'DESC')
             ->paginate(20);
 
-        // Legacy client shape: both iOS apps parse data.bookings (the
-        // paginator object), not data directly.
+        // Legacy client shape: both iOS apps parse data.bookings.list, where
+        // each item carries the same keys update_status returns (the apps'
+        // shared `List` model). Returning the raw paginator renders blank
+        // ride lists in both apps.
+        $user  = $request->user();
+        $items = [];
+        foreach ($bookings->items() as $booking) {
+            $isCustomer = (int) $user->role_id === 3;
+            $name = $isCustomer
+                ? trim(($booking->rider_first_name ?? '') . ' ' . ($booking->rider_last_name ?? ''))
+                : trim(($booking->first_name ?? '') . ' ' . ($booking->last_name ?? ''));
+            $phone   = $isCustomer ? $booking->rider_number : $booking->phone_number;
+            $imgUser = $isCustomer ? $booking->rider_image : $booking->user_image;
+
+            $items[] = [
+                'order_id'        => $booking->id,
+                'booking_id'      => $booking->booking_id ?: '',
+                'name'            => $name,
+                'rider_id'        => !empty($booking->rider_id) ? $booking->rider_id : 0,
+                'start_location'  => $booking->start_location ?: '',
+                'end_address'     => $booking->end_location ?: '',
+                'pick_up'         => $booking->start_location ?: '',
+                'drop_off'        => $booking->end_location ?: '',
+                'poly_points'     => (string) ($booking->map_img ?: ''),
+                'map_image'       => (string) ($booking->map_img ?: ''),
+                'total_distance'  => number_format((float) $booking->total_metter / 1000, 2, '.', '') . ' KM',
+                'packet_size'     => $booking->packet_size . $booking->package_unit,
+                'package_name'    => $booking->package_name ?: '',
+                'total_cost'      => number_format((float) $booking->total_amount, 2, '.', ''),
+                'ride_start'      => !empty($booking->start_time) ? utc_time(strtotime($booking->start_time)) : '',
+                'end_ride'        => !empty($booking->end_time) ? utc_time(strtotime($booking->end_time)) : '',
+                'order_status'    => $booking->order_status,
+                'is_past'         => $booking->picked_time < Carbon::today(),
+                'booking_created' => !empty($booking->booking_created) ? utc_time(strtotime($booking->booking_created)) : '',
+                'phone_number'    => $phone ?: '',
+                'rider_number'    => $booking->rider_number ?: '',
+                'car_number'      => (string) ($booking->car_number ?: ''),
+                'user_image'      => !empty($imgUser) ? url($imgUser) : url('/images/placeholder.jpg'),
+                'payment_status'  => $booking->payment_status ?: '',
+                'gateway_name'    => $booking->gateway_name ?: '',
+                'image_name'      => $booking->image_name ?? '',
+                'location'        => OrderSubTrip::locationObject($booking->id),
+                'helper'          => HelperOrder::helperList($booking->id),
+                'is_helper'       => HelperOrder::helperStatus($booking->id),
+            ];
+        }
+
         return response()->json([
             'status'   => true,
             'messages' => 'Bookings',
-            'data'     => ['bookings' => $bookings],
+            'data'     => [
+                'bookings' => [
+                    'list'  => $items,
+                    'links' => [
+                        'first' => $bookings->url(1),
+                        'last'  => $bookings->url($bookings->lastPage()),
+                        'prev'  => $bookings->previousPageUrl(),
+                        'next'  => $bookings->nextPageUrl(),
+                    ],
+                ],
+            ],
         ]);
     }
 
