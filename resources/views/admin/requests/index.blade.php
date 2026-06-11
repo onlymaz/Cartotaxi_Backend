@@ -219,6 +219,17 @@
             }
         });
 
+        // "⋮" actions dropdown in the table rows (nothing bound it before,
+        // so View Detail / Add Driver / Change Status were unreachable).
+        $('body').on('click', '.dropdown-toggle-btn', function (e) {
+            e.stopPropagation();
+            var menu = $(this).siblings('.action-dropdown-menu');
+            $('.action-dropdown-menu').not(menu).hide();
+            menu.toggle();
+        });
+        $(document).on('click', function () { $('.action-dropdown-menu').hide(); });
+        $('body').on('click', '.action-dropdown-menu .popup', function () { $('.action-dropdown-menu').hide(); });
+
         // Popup modal
         $('body').on('click', '.popup', function () {
             var elem = $(this);

@@ -17,6 +17,17 @@
     }
 @endphp
 @if($orderId && $orderId > 0)
+@php
+    try {
+        $eyeShowUrl = route('bookings.show', $orderId);
+    } catch (\Exception $e) {
+        $eyeShowUrl = '/bookings/show/' . $orderId;
+    }
+@endphp
+{{-- Direct view button: the detail popup (incl. Dispatch History) in one click --}}
+<button type="button" class="popup" data-url="{{$eyeShowUrl}}" data-type="view" title="View detail & dispatch history" style="cursor: pointer; padding: 0.5rem; display: inline-flex; align-items: center; justify-content: center; border-radius: 0.375rem; transition: all 0.2s; border: none; background: transparent;" onmouseover="this.style.background='var(--ct-gray-100)'" onmouseout="this.style.background='transparent'">
+    <i class="fas fa-eye" style="color: #3b82f6;"></i>
+</button>
 <div class="action-dropdown" style="position: relative; display: inline-block;">
     <button type="button" class="dropdown-toggle-btn" data-order-id="{{$orderId}}" style="cursor: pointer; padding: 0.5rem; display: inline-flex; align-items: center; justify-content: center; border-radius: 0.375rem; transition: all 0.2s; border: none; background: transparent;" onmouseover="this.style.background='var(--ct-gray-100)'" onmouseout="this.style.background='transparent'">
         <i class="fas fa-ellipsis-v" style="color: var(--ct-gray-600);"></i>

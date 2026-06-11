@@ -320,6 +320,17 @@
             $('#end_date').val('');
             window.location.href = '{{ route("admin.dashboard") }}';
         });
+
+        // Recent-order "View" buttons open the booking detail modal.
+        // The buttons carried the .popup class but no page handler existed.
+        // This layout (cargotaxi) ships its own #ctModal + openModal helper.
+        $('body').on('click', '.popup', function () {
+            var url = $(this).attr('data-url');
+            if (!url) return;
+            $.ajax({ type: 'GET', url: url, success: function (data) {
+                openModal('Booking Detail', data);
+            }});
+        });
     });
     
     // Revenue Chart
