@@ -25,6 +25,12 @@ Route::group(['prefix' => 'v1'], function () {
     Route::match(['get', 'post'], 'translations', 'Api\TranslationController@language');
     Route::match(['get', 'post'], 'get-translations', 'Api\TranslationController@language');
     Route::get('helper-fee', 'Api\SettingsController@HelperDetail');
+
+    // ── Legacy paths the shipped iOS apps call (public) ──────────────────
+    Route::post('social-login', 'Api\AuthController@socialLogin')->middleware('throttle:10,1');
+    Route::post('business-account', 'Api\AuthController@registerBusiness')->middleware('throttle:5,1');
+    Route::post('reset-password', 'Api\ResetPasswordController@create')->middleware('throttle:3,60');
+    Route::post('reset-password/store', 'Api\ResetPasswordController@store')->middleware('throttle:5,60');
 });
 
 Route::group(['prefix' => 'v1', 'middleware' => ['authApi']], function () {
@@ -33,10 +39,10 @@ Route::group(['prefix' => 'v1', 'middleware' => ['authApi']], function () {
     Route::post('logout', 'Api\AuthController@logout');
     Route::get('dashboard/statistics', 'Api\StatisticsController@UserStats');
     Route::get('bookings', 'Api\BookingController@bookings');
-    // `bookings/storeo` was a typo of `store` and pointed at a non-existent
-    // controller method (would 500 on every call). Removed; mobile clients
-    // should use POST /bookings.
-    Route::post('bookings', 'Api\BookingController@store');
+    // The shipped iOS apps POST `bookings` (multipart) to fetch their booking
+    // LIST and create orders via `booking-store/v2` — so POST bookings maps
+    // to the list, matching the legacy contract the apps were built against.
+    Route::post('bookings', 'Api\BookingController@bookings');
     Route::post('booking-store/v2', 'Api\BookingController@store');
     Route::put('bookings/{id}/status', 'Api\BookingController@update_status');
     Route::get('auto-orders', 'Api\AutoOrderController@index');
@@ -49,4 +55,28 @@ Route::group(['prefix' => 'v1', 'middleware' => ['authApi']], function () {
     Route::post('helpers', 'Api\HelperController@create');
     Route::get('helpers/{id}', 'Api\HelperController@show');
     Route::get('user/statistics', 'Api\AuthController@statistics');
+
+    // ── Legacy paths the shipped iOS apps call (authenticated) ──────────
+    // Both apps send every request as multipart POST, so each alias accepts
+    // POST and forwards to the same controller as its modern counterpart.
+    Route::post('pending-orders', 'Api\AutoOrderController@index');                       // dispatch offers list
+    Route::post('accept-order', 'Api\AutoOrderController@allowAutoRider');                // accept / reject the call
+    Route::post('update-coordinates', 'Api\TrackingController@UpdateCoordinates');        // rider GPS heartbeat
+    Route::post('update-booking-status', 'Api\BookingController@update_status');
+    Route::post('update-payment-status', 'Api\BookingController@update_payment');
+    Route::post('store-rating', 'Api\RatingController@store_rating');
+    Route::post('update-profile', 'Api\SettingsController@profile_update');
+    Route::post('deleteuser', 'Api\AuthController@DeleteUser');
+    Route::match(['get', 'post'], 'user-statistics', 'Api\AuthController@statistics');
+    Route::match(['get', 'post'], 'user-object', 'Api\AuthController@userObject');
+    Route::post('show-helper', 'Api\HelperController@show');
+    Route::post('add-helper', 'Api\HelperController@create');
+    Route::post('ride-start-drop', 'Api\RiderRouteController@start_rider');
+    Route::post('update-ride-drop-off-completed', 'Api\RiderRouteController@ride_completed');
+    Route::post('send-file-to-rider', 'Api\AutoOrderController@sendFileToRider');
+
+    // Stripe card payments (User app StripePaymentIntentService)
+    Route::post('payments/stripe/payment-intent', 'Api\StripePaymentIntentController@create');
+    Route::post('payments/stripe/payment-intent/confirm', 'Api\StripePaymentIntentController@confirm');
+    Route::post('payments/stripe/payment-intent/cancel', 'Api\StripePaymentIntentController@cancel');
 });

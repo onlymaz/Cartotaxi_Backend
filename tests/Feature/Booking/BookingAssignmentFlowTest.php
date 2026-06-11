@@ -38,7 +38,7 @@ class BookingAssignmentFlowTest extends TestCase
         $package = $this->package();
 
         $this->withHeaders(['Authorization' => 'Bearer ' . $customerToken])
-            ->postJson('/api/v1/bookings', $this->bookingPayload($package->id))
+            ->postJson('/api/v1/booking-store/v2', $this->bookingPayload($package->id))
             ->assertStatus(200)
             ->assertJson(['status' => true]);
 
@@ -77,7 +77,7 @@ class BookingAssignmentFlowTest extends TestCase
         $package = $this->package();
 
         $this->withHeaders(['Authorization' => 'Bearer ' . $customerToken])
-            ->postJson('/api/v1/bookings', $this->bookingPayload($package->id))
+            ->postJson('/api/v1/booking-store/v2', $this->bookingPayload($package->id))
             ->assertStatus(200);
 
         $order = Order::first();
@@ -130,7 +130,7 @@ class BookingAssignmentFlowTest extends TestCase
         $package = $this->package();
 
         $this->withHeaders(['Authorization' => 'Bearer ' . $customerToken])
-            ->postJson('/api/v1/bookings', $this->bookingPayload($package->id))
+            ->postJson('/api/v1/booking-store/v2', $this->bookingPayload($package->id))
             ->assertStatus(200);
 
         $order = Order::first();
@@ -177,7 +177,7 @@ class BookingAssignmentFlowTest extends TestCase
         $package = $this->package();
 
         $this->withHeaders(['Authorization' => 'Bearer ' . $customerToken])
-            ->postJson('/api/v1/bookings', $this->bookingPayload($package->id))
+            ->postJson('/api/v1/booking-store/v2', $this->bookingPayload($package->id))
             ->assertStatus(200);
 
         $order = Order::first();

@@ -236,7 +236,11 @@ class BookingController extends Controller
 
     public function update_status(UpdateOrderStatusRequest $request)
     {
-        $routeOrderId = (int) $request->route('id');
+        // Modern route: PUT bookings/{id}/status. Legacy app route:
+        // POST update-booking-status carries order_id in the body only.
+        $routeOrderId = $request->route('id') !== null
+            ? (int) $request->route('id')
+            : (int) $request->order_id;
         $bodyOrderId = $request->filled('order_id') ? (int) $request->order_id : $routeOrderId;
 
         if ($routeOrderId !== $bodyOrderId) {

@@ -79,7 +79,7 @@ class BookingTotalAmountTest extends TestCase
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/api/v1/bookings', $payload);
+        ])->postJson('/api/v1/booking-store/v2', $payload);
 
         $response->assertStatus(200)->assertJson(['status' => true]);
 

@@ -43,4 +43,15 @@ return [
         'redirect' => env('FACEBOOK_REDIRECT_URI'),
     ],
 
+    'stripe' => [
+        // Publishable key is returned to the app; secret stays server-side.
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+    ],
+
+    'apple' => [
+        // iOS bundle id; when set, Sign in with Apple tokens must carry it.
+        'client_id' => env('APPLE_CLIENT_ID'),
+    ],
+
 ];

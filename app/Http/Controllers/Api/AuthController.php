@@ -346,4 +346,232 @@ class AuthController extends Controller
             'user_stats' => $data
         ]);
     }
+
+    /**
+     * Legacy `user-object` endpoint: return the caller's fresh profile in the
+     * same shape Login uses, so the apps can refresh their cached user.
+     */
+    public function userObject(Request $request)
+    {
+        $data['user'] = UserHelper::user_stats($request->user());
+
+        return response()->json([
+            'status'   => true,
+            'messages' => 'User profile',
+            'data'     => $data,
+        ]);
+    }
+
+    /**
+     * Business signup (`business-account`): the regular customer registration
+     * plus the company fields the SignupBusiness screen collects.
+     */
+    public function registerBusiness(Request $request)
+    {
+        $validation_fields = [
+            'email'        => 'required|email|unique:users',
+            'first_name'   => 'required',
+            'last_name'    => 'required',
+            'phone_number' => 'required|unique:users',
+            'password'     => ['required', 'min:6', 'confirmed'],
+            'lat'          => 'required|numeric|between:-90,90',
+            'long'         => 'required|numeric|between:-180,180',
+            'company_name' => 'required|string|max:191',
+            'vat_number'   => 'nullable|string|max:64',
+        ];
+
+        $validator = $this->getValidationFactory()->make($request->all(), $validation_fields);
+        if ($validator->fails()) {
+            return response()->json([
+                'status'   => false,
+                'messages' => implode(' ', array_column($validator->messages()->getMessages(), 0))
+            ], 422);
+        }
+
+        $rawCode = (string) random_int(100000, 999999);
+
+        $user = User::forceCreate([
+            'role_id'                       => 3,
+            'first_name'                    => ucfirst($request['first_name']),
+            'last_name'                     => ucfirst($request['last_name']),
+            'email'                         => $request['email'],
+            'device'                        => $request['device'],
+            'provider'                      => 'app',
+            'phone_number'                  => $request['phone_number'],
+            'password'                      => Hash::make($request['password']),
+            'confirmation_code'             => Hash::make($rawCode),
+            'confirmation_code_expires_at'  => now()->addMinutes(30),
+            'confirmed'                     => 0,
+            'IsActive'                      => 0,
+            'fcm_token'                     => '',
+            'lat'                           => $request->lat,
+            'long'                          => $request->long,
+            'company_name'                  => $request->company_name,
+            'vat_number'                    => $request->vat_number,
+        ]);
+
+        $data['user'] = UserHelper::user_stats($user);
+        $object       = UserHelper::user_array($user);
+        $this->dispatch(new SendConfirmationEmail($user, $rawCode));
+        FireBaseRealTimeDatabase::StoreData('users/' . $user->id, $object);
+
+        return response()->json([
+            'status'   => true,
+            'messages' => 'Successfully created account',
+            'data'     => $data
+        ], 201);
+    }
+
+    /**
+     * Social sign-in (`social-login`). The app sends the provider token in
+     * `access_token` and the provider name in `action` (apple | facebook).
+     * The token is verified server-side with the provider before any account
+     * is created or signed in — the client's word alone is never enough.
+     */
+    public function socialLogin(Request $request)
+    {
+        $validation_fields = [
+            'access_token' => 'required|string',
+            'action'       => 'required|in:apple,facebook,google',
+            'fcm_token'    => 'required',
+        ];
+        $validator = $this->getValidationFactory()->make($request->all(), $validation_fields);
+        if ($validator->fails()) {
+            return response()->json([
+                'status'   => false,
+                'messages' => implode(' ', array_column($validator->messages()->getMessages(), 0))
+            ], 422);
+        }
+
+        try {
+            $identity = $this->verifySocialToken($request->action, $request->access_token);
+        } catch (\Throwable $e) {
+            Log::warning('Social login verification failed (' . $request->action . '): ' . $e->getMessage());
+            return response()->json([
+                'status'   => false,
+                'messages' => 'Could not verify your ' . ucfirst($request->action) . ' sign-in. Please try again.',
+            ], 401);
+        }
+
+        $user = User::where('provider', $request->action)
+            ->where('provider_id', $identity['id'])
+            ->first();
+
+        if (!$user && !empty($identity['email'])) {
+            $user = User::where('email', $identity['email'])->first();
+        }
+
+        if ($user && $user->role_id == 1) {
+            return response()->json([
+                'status'   => false,
+                'messages' => 'Admin accounts cannot use the mobile API.',
+            ], 403);
+        }
+
+        if (!$user) {
+            $user = User::forceCreate([
+                'role_id'      => 3,
+                'first_name'   => ucfirst($request->input('first_name', $identity['first_name'] ?? 'CargoTaxi')),
+                'last_name'    => ucfirst($request->input('last_name', $identity['last_name'] ?? 'Customer')),
+                'email'        => $identity['email'] ?? ($request->action . '-' . $identity['id'] . '@social.cargotaxi.local'),
+                'device'       => $request->input('device', 'ios'),
+                'provider'     => $request->action,
+                'provider_id'  => $identity['id'],
+                'phone_number' => null,
+                'password'     => Hash::make(Str::random(40)),
+                'confirmed'    => 1,
+                'IsActive'     => 1,
+                'fcm_token'    => '',
+                'lat'          => $request->input('lat'),
+                'long'         => $request->input('long'),
+            ]);
+        } elseif (empty($user->provider_id)) {
+            // Existing email account signing in socially for the first time.
+            $user->provider     = $request->action;
+            $user->provider_id  = $identity['id'];
+        }
+
+        if (!$user->IsActive && $user->confirmed) {
+            return response()->json([
+                'status'   => false,
+                'messages' => 'Your account has been disabled. Please contact support.',
+            ], 403);
+        }
+
+        $now   = now()->timestamp;
+        $token = JWT::encode([
+            'iss' => config('app.url'),
+            'sub' => $user->id,
+            'iat' => $now,
+            'nbf' => $now,
+            'exp' => $now + (int) config('app.jwt_ttl', 86400),
+            'jti' => (string) Str::uuid(),
+            'email' => $user->email,
+            'id'    => $user->id,
+        ], config('app.jwt_secret'), 'HS256');
+
+        $user->access_token = $token;
+        $user->fcm_token    = $request->fcm_token;
+        $user->confirmed    = 1;
+        $user->IsActive     = 1;
+        $user->save();
+
+        $data['user'] = UserHelper::user_stats($user);
+        FireBaseRealTimeDatabase::StoreData('users/' . $user->id, UserHelper::user_array($user));
+
+        return response()->json([
+            'status'   => true,
+            'messages' => 'Logged in Successfully',
+            'data'     => $data,
+        ], 200);
+    }
+
+    /**
+     * Verify a provider token and return ['id', 'email'?, 'first_name'?, 'last_name'?].
+     *
+     * @throws \RuntimeException when the token cannot be verified
+     */
+    private function verifySocialToken(string $provider, string $token): array
+    {
+        if ($provider === 'apple') {
+            // The app sends Apple's identity token (a JWT). Verify its
+            // signature against Apple's published JWKS.
+            $jwks = json_decode(file_get_contents('https://appleid.apple.com/auth/keys'), true);
+            $claims = (array) JWT::decode($token, \Firebase\JWT\JWK::parseKeySet($jwks));
+
+            if (($claims['iss'] ?? '') !== 'https://appleid.apple.com') {
+                throw new \RuntimeException('Unexpected Apple token issuer');
+            }
+            $expectedAud = config('services.apple.client_id');
+            if (!empty($expectedAud) && ($claims['aud'] ?? '') !== $expectedAud) {
+                throw new \RuntimeException('Apple token audience mismatch');
+            }
+
+            return [
+                'id'    => $claims['sub'],
+                'email' => $claims['email'] ?? null,
+            ];
+        }
+
+        if ($provider === 'facebook' || $provider === 'google') {
+            $url = $provider === 'facebook'
+                ? 'https://graph.facebook.com/me?fields=id,email,first_name,last_name&access_token=' . urlencode($token)
+                : 'https://www.googleapis.com/oauth2/v3/userinfo?access_token=' . urlencode($token);
+
+            $response = json_decode(file_get_contents($url), true);
+            $id = $response['id'] ?? $response['sub'] ?? null;
+            if (empty($id)) {
+                throw new \RuntimeException(ucfirst($provider) . ' token rejected');
+            }
+
+            return [
+                'id'         => $id,
+                'email'      => $response['email'] ?? null,
+                'first_name' => $response['first_name'] ?? $response['given_name'] ?? null,
+                'last_name'  => $response['last_name'] ?? $response['family_name'] ?? null,
+            ];
+        }
+
+        throw new \RuntimeException('Unsupported provider');
+    }
 }

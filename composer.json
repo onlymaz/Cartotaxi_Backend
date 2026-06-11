@@ -22,6 +22,7 @@
         "sentry/sentry-laravel": "^2.11",
         "sofort/sofortlib-php": "3.*",
         "spatie/geocoder": "^3.9",
+        "stripe/stripe-php": "^13.0",
         "twilio/sdk": "^6.9",
         "yajra/laravel-datatables-buttons": "^4.0",
         "yajra/laravel-datatables-html": "^4.0",
