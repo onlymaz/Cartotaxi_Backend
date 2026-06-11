@@ -50,6 +50,7 @@ Route::group(['middleware' => ['auth','roles'],'roles'=>['admin']],function() {
     Route::resource('reviews','Admin\ReviewController');
     Route::resource('settings','Admin\SettingController');
     Route::resource('bookings','Admin\OrderRequestController');
+    Route::get('dispatch-logs','Admin\DispatchLogController@index')->name('dispatch.logs');
     Route::resource('dispatcher','Admin\DispatcherController');
     Route::get('dispatcher/export/csv/{type}','Admin\DispatcherController@exportCsv')->name('dispatcher.export.csv');
     Route::get('dispatcher/export/pdf/{type}','Admin\DispatcherController@exportPdf')->name('dispatcher.export.pdf');

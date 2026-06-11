@@ -29,6 +29,12 @@
             </a>
         </li>
         <li class="ct-nav-item">
+            <a href="{{ route('dispatch.logs') }}" class="ct-nav-link {{ Request::is('dispatch-logs') ? 'active' : '' }}">
+                <span class="ct-nav-icon"><i class="fas fa-history"></i></span>
+                <span>Dispatch Logs</span>
+            </a>
+        </li>
+        <li class="ct-nav-item">
             <a href="{{ route('helper.index') }}" class="ct-nav-link {{ request()->routeIs('helper.index') ? 'active' : '' }}">
                 <span class="ct-nav-icon"><i class="fas fa-hands-helping"></i></span>
                 <span>Helper Requests</span>
