@@ -14,7 +14,7 @@ class OrderAssignExpire extends Command
     protected $description = 'Expire unanswered ride offers so the order moves to the next nearest rider';
 
     /** Minutes a rider has to answer the call before it transfers. */
-    public const OFFER_TIMEOUT_MINUTES = 4;
+    public const OFFER_TIMEOUT_MINUTES = 1;
 
     public function handle()
     {
