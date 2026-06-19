@@ -2,6 +2,79 @@
 @section('title')
     <title> {{__('messages.my_bookings')}} | {{ config('app.name', 'Laravel') }}</title>
 @stop
+@section('styles')
+<style>
+    /* ===== My Bookings — modern card layout (page-scoped) ===== */
+    #bodyContent { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+
+    /* page header */
+    .card > .card-header { background: transparent; border: 0; padding: 4px 4px 18px; }
+    .card > .card-header h1 {
+        font-size: 1.45rem; font-weight: 800; color: #101828; margin: 0;
+        display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    }
+    .card > .card-header h1 .btn-success {
+        background: #16a34a; border: 0; border-radius: 10px; padding: 9px 16px;
+        font-weight: 600; font-size: .85rem; color: #fff; display: inline-flex; align-items: center; gap: 8px; float: none;
+    }
+    .card > .card-header h1 .btn-success:hover { background: #15803d; }
+    .card > .card-body { background: #f7f8fa; border-radius: 16px; padding: 20px; }
+
+    /* one booking = one card */
+    .mapclass {
+        background: #fff; border: 1px solid #eaecf0; border-radius: 16px;
+        padding: 20px 22px; margin-bottom: 18px;
+        box-shadow: 0 1px 2px rgba(16,24,40,.05);
+        transition: box-shadow .18s ease, transform .18s ease;
+    }
+    .mapclass:hover { box-shadow: 0 10px 28px rgba(16,24,40,.10); transform: translateY(-2px); }
+    .mapclass p { margin-bottom: .55rem; color: #475467; font-size: .92rem; line-height: 1.5; }
+    .mapclass strong, .mapclass b { color: #101828; font-weight: 600; }
+
+    /* badges → clean pills */
+    .mapclass .badge {
+        display: inline-block; padding: .42em .8em; border-radius: 999px;
+        font-size: .72rem; font-weight: 600; letter-spacing: .01em; margin: 2px 3px 2px 0;
+        vertical-align: middle; line-height: 1.5; border: 0;
+    }
+    .mapclass .badge-success { background: #dcfce7 !important; color: #166534 !important; }
+    .mapclass .badge-warning { background: #fef3c7 !important; color: #92400e !important; }
+    .mapclass .badge-info    { background: #dbeafe !important; color: #1e40af !important; }
+    .mapclass .badge-secondary { background: #f1f5f9 !important; color: #475569 !important; }
+    .mapclass .badge-danger  { background: #fee2e2 !important; color: #991b1b !important; }
+    .mapclass .badge-inverse { background: #1f2937 !important; color: #fff !important; }
+
+    /* "view on map" → button */
+    .mapclass .view_map_button {
+        display: inline-flex !important; align-items: center; gap: 8px;
+        background: #0d1b5e; color: #fff !important; padding: 9px 18px; border-radius: 10px;
+        font-weight: 600; font-size: .85rem; text-decoration: none !important; margin-top: 6px;
+    }
+    .mapclass .view_map_button:hover { background: #16267a; color: #fff !important; }
+
+    /* amount / distance emphasis */
+    .mapclass .overflow-hidden span { margin-right: 20px; color: #101828; font-size: .95rem; }
+    .mapclass .overflow-hidden b { color: #0d1b5e; }
+    .mapclass .hint-text { color: #98a2b3 !important; font-size: .78rem; }
+
+    /* progress bar */
+    .mapclass .progress { height: 6px; border-radius: 999px; background: #eef2f6; }
+    .mapclass .progress-bar-warning { background: #0d1b5e; }
+
+    /* refuse link */
+    .mapclass .refused_order { background: #fee2e2 !important; color: #991b1b !important; }
+
+    /* empty state */
+    .scrollbar > .row h1 { color: #98a2b3; font-weight: 600; text-align: center; padding: 48px 0; font-size: 1.15rem; }
+
+    /* map box */
+    .mapclass .map-box, .mapclass .show_map { border-radius: 12px; overflow: hidden; margin-top: 12px; }
+
+    /* (Modal base styling is now global — see public/css/cargotaxi-theme.css) */
+
+    @media (max-width: 768px) { .mapclass { padding: 16px; } .card > .card-body { padding: 12px; } }
+</style>
+@endsection
 @section('content')
     <div class="card">
         <div class="card-header">

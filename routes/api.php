@@ -36,6 +36,7 @@ Route::group(['prefix' => 'v1'], function () {
 Route::group(['prefix' => 'v1', 'middleware' => ['authApi']], function () {
     Route::delete('user', 'Api\AuthController@DeleteUser');
     Route::put('user/fcm-token', 'Api\AuthController@update_fcm_token');
+    Route::get('firebase-token', 'Api\AuthController@firebaseToken');
     Route::post('logout', 'Api\AuthController@logout');
     Route::get('dashboard/statistics', 'Api\StatisticsController@UserStats');
     Route::get('bookings', 'Api\BookingController@bookings');

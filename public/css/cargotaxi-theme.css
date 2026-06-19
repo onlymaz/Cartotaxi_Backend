@@ -1270,3 +1270,38 @@ img {
   background: var(--ct-gray-400);
 }
 
+
+/* ============================================================
+   Bootstrap modal base — restored globally.
+   The bundled theme dropped Bootstrap's base modal CSS, so .modal
+   blocks rendered inline on every page (Helper Info, Rider Info, etc.).
+   Hide them until triggered and give them a clean, modern look.
+   ============================================================ */
+.modal {
+    display: none; position: fixed; inset: 0; z-index: 1055;
+    width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto;
+}
+.modal.show, .modal.in { display: block; }
+.modal-dialog { max-width: 520px; margin: 1.75rem auto; }
+.modal-content {
+    background: #fff; border: 0; border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(16,24,40,.28); overflow: hidden;
+}
+.modal-header {
+    padding: 18px 22px; border-bottom: 1px solid #eaecf0;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.modal-header .modal-title { font-size: 1.1rem; font-weight: 700; color: #101828; margin: 0; }
+.modal-header .close {
+    background: none; border: 0; font-size: 1.4rem; line-height: 1;
+    color: #98a2b3; opacity: 1; cursor: pointer;
+}
+.modal-body { padding: 22px; color: #344054; line-height: 1.7; }
+.modal-body strong { color: #101828; }
+.modal-footer {
+    padding: 14px 22px; border-top: 1px solid #eaecf0;
+    display: flex; justify-content: flex-end; gap: 10px;
+}
+.modal-footer .btn { border-radius: 10px; padding: 8px 16px; font-weight: 600; font-size: .85rem; }
+.modal-footer .btn-default { background: #f1f5f9; color: #475467; border: 0; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(16,24,40,.5); z-index: 1050; }

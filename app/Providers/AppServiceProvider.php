@@ -10,7 +10,13 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register()
     {
-        //
+        // Laravel Telescope exposes every request, query, job and payload.
+        // It must NEVER run in production. Force it off here (before Telescope's
+        // own provider reads the flag) so a missing TELESCOPE_ENABLED in the
+        // production .env can't accidentally leave it on.
+        if ($this->app->environment('production')) {
+            config(['telescope.enabled' => false]);
+        }
     }
 
     public function boot()
@@ -44,6 +50,12 @@ class AppServiceProvider extends ServiceProvider
                 'Refusing to boot: APP_ENV=production but FRONTEND_URL is unset or points at localhost. '
                 . 'Set FRONTEND_URL to your real frontend origin(s) before serving production traffic.'
             );
+        }
+
+        // Belt-and-suspenders: even if Telescope somehow loaded, never record
+        // in production.
+        if ($env === 'production' && class_exists(\Laravel\Telescope\Telescope::class)) {
+            \Laravel\Telescope\Telescope::stopRecording();
         }
     }
 }

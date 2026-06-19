@@ -144,6 +144,7 @@ class AuthController extends Controller
             }
             $user->save();
             $data_user['user'] = UserHelper::user_stats($user);
+            $data_user['firebase_token'] = $this->issueFirebaseToken($user);
             $object            = UserHelper::user_array($user);
             $reference         = 'users/' . $user->id;
             FireBaseRealTimeDatabase::StoreData($reference, $object);
@@ -244,6 +245,7 @@ class AuthController extends Controller
         $user->save();
 
         $data_user['user'] = UserHelper::user_stats($user);
+        $data_user['firebase_token'] = $this->issueFirebaseToken($user);
         $object            = UserHelper::user_array($user);
         $reference         = 'users/' . $user->id;
         FireBaseRealTimeDatabase::StoreData($reference, $object);
@@ -252,6 +254,40 @@ class AuthController extends Controller
             'status'   => true,
             'messages' => 'success',
             'data'     => $data_user
+        ]);
+    }
+
+    /**
+     * Mint a Firebase custom token so the apps can call
+     * Auth.auth().signIn(withCustomToken:) and pass the locked-down
+     * Realtime Database rules. The Firebase uid equals the backend user id.
+     */
+    private function issueFirebaseToken(User $user): ?string
+    {
+        try {
+            return app('firebase.auth')->createCustomToken((string) $user->id)->toString();
+        } catch (\Throwable $e) {
+            // Don't fail login if Firebase is unreachable; the app can retry
+            // via GET /api/v1/firebase-token.
+            Log::warning('Firebase custom token failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function firebaseToken(Request $request)
+    {
+        $token = $this->issueFirebaseToken($request->user());
+
+        if ($token === null) {
+            return response()->json([
+                'status'   => false,
+                'messages' => 'Could not issue Firebase token',
+            ], 503);
+        }
+
+        return response()->json([
+            'status' => true,
+            'data'   => ['firebase_token' => $token],
         ]);
     }
 
@@ -471,10 +507,15 @@ class AuthController extends Controller
             $user = User::whereRaw('LOWER(email) = ?', [strtolower($identity['email'])])->first();
         }
 
-        if ($user && $user->role_id == 1) {
+        // Social sign-in (Google/Apple) is for CUSTOMERS only. Admins (role 1)
+        // and drivers/riders (role 2) must not be able to sign into the
+        // customer app this way — they have the admin panel / driver app.
+        if ($user && (int) $user->role_id !== 3) {
             return response()->json([
                 'status'   => false,
-                'messages' => 'Admin accounts cannot use the mobile API.',
+                'messages' => (int) $user->role_id === 1
+                    ? 'Admin accounts cannot use the mobile API.'
+                    : 'This account is registered as a driver. Please use the driver app to sign in.',
             ], 403);
         }
 

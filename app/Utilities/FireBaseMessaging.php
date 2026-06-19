@@ -50,7 +50,10 @@ class FireBaseMessaging
             ],
             'data' => [
                 'order_id' => ($order)?(string)$orders['id']:"",
-                'order_status' => ($order)?(string)$orders['order_status']:""
+                'order_status' => ($order)?(string)$orders['order_status']:"",
+                // The apps route pushes on this (e.g. new_order opens the
+                // incoming-ride alert in the Driver app).
+                'type' => (string)$type,
             ],
             'android' => [
                 // https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages#androidconfig
@@ -79,8 +82,9 @@ class FireBaseMessaging
                             'subtitle' => '',
                             'body' => $text,
                         ],
-                        'order_id' => ($order)?$orders['id']:"",
+                        'order_id' => ($order)?(int)$orders['id']:0,
                         'order_status' => ($order)?(string)$orders['order_status']:"",
+                        'type' => (string)$type,
                         /*'badge' => $badge,*/
                         'sound' => $sound,
                         "mutable-content"=> 1,
@@ -140,31 +144,31 @@ class FireBaseMessaging
 
     }
     public static function sendWebNotificaiton($fcm_token,$title,$body){
-         $data = [
-            "to" => $fcm_token,
-            "notification" =>
-                [
-                    "title" => $title,
-                    "body" => $body,
-                    "icon" => url('images/logo.png'),
-                ],
-        ];
-        $dataString = json_encode($data);
+        // Migrated off the legacy fcm.googleapis.com/fcm/send endpoint
+        // (shut down by Google) to the FCM v1 API via the kreait SDK.
+        if (empty($fcm_token)) {
+            return;
+        }
 
-        $headers = [
-            'Authorization: key=' . env('FCM_SERVER_KEY') ,
-            'Content-Type: application/json',
-        ];
-  
-        $ch = curl_init();
-  
-        curl_setopt($ch, CURLOPT_URL, 'https://fcm.googleapis.com/fcm/send');
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $dataString);
-  
-        curl_exec($ch);
-        // return redirect('/customer/bookings')->with('message', 'Notification sent!'); 
+        $message = new RawMessageFromArray([
+            'token' => $fcm_token,
+            'notification' => [
+                'title' => $title,
+                'body'  => $body,
+            ],
+            'webpush' => [
+                'notification' => [
+                    'title' => $title,
+                    'body'  => $body,
+                    'icon'  => url('images/logo.png'),
+                ],
+            ],
+        ]);
+
+        try {
+            app('firebase.messaging')->send($message);
+        } catch (\Throwable $e) {
+            Log::warning('Firebase web push skipped: '.$e->getMessage());
+        }
     }
 }
