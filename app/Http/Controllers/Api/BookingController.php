@@ -37,6 +37,17 @@ class BookingController extends Controller
     public function store(StoreBookingRequest $request)
     {
         $locations      = json_decode($request->location, true);
+        // The mobile apps send each leg with keys start_point/end_point and
+        // start_lng/end_lng. Normalise them to the names this controller writes
+        // (start_location/end_location/start_long/end_long) so both shapes work.
+        $locations = array_map(function ($loc) {
+            return array_merge((array) $loc, [
+                'start_location' => $loc['start_point'] ?? ($loc['start_location'] ?? ''),
+                'end_location'   => $loc['end_point']   ?? ($loc['end_location'] ?? ''),
+                'start_long'     => $loc['start_lng']   ?? ($loc['start_long'] ?? null),
+                'end_long'       => $loc['end_lng']     ?? ($loc['end_long'] ?? null),
+            ]);
+        }, $locations ?? []);
         $package_detail = Package::findOrFail($request->package_id);
         $customer_id    = $request->user()->id;
         $totalMeter     = (int) $request->total_meter;

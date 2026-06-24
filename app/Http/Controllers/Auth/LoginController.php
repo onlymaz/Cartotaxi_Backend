@@ -111,7 +111,14 @@ class LoginController extends Controller
                 'email' => $request->email,
                 'password' => $request->password])
             ){
-                return redirect()->back();
+                // Send the user to their proper landing page instead of back
+                // to /login (redirect()->back() left admins stuck on the login
+                // form even though the session was already authenticated).
+                $authUser = \Auth::user();
+                if ($authUser && (int) $authUser->role_id === 1) {
+                    return redirect()->intended(route('admin.dashboard'));
+                }
+                return redirect()->intended(route('home'));
             }
         }
 

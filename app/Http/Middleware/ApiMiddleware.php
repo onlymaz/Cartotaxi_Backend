@@ -43,11 +43,12 @@ class ApiMiddleware
             if ($decoded) {
                 $user = User::where('access_token', $token)->first();
 
-                // Local smoke/debug sessions often log in from both the app and
-                // shell tools. In local only, allow a freshly signed JWT to
-                // resolve by subject/email even if another debug login rotated
-                // the persisted access_token column.
-                if (!$user && app()->environment('local')) {
+                // Allow multiple concurrent sessions (app + website + multiple
+                // devices). A validly-signed, non-expired JWT resolves by its
+                // subject/email even if a later login rotated the persisted
+                // access_token column — so logging in elsewhere no longer kicks
+                // out an existing session.
+                if (!$user) {
                     $decodedUserId = isset($decoded->sub) ? (int) $decoded->sub : 0;
                     $decodedEmail = isset($decoded->email) ? (string) $decoded->email : '';
 
