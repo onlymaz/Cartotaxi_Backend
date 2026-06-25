@@ -55,8 +55,10 @@ class AuthController extends Controller
             'password'                      => Hash::make($request['password']),
             'confirmation_code'             => Hash::make($rawCode),
             'confirmation_code_expires_at'  => now()->addMinutes(30),
-            'confirmed'                     => 0,
-            'IsActive'                      => 0,
+            // Auto-confirm new signups (email delivery not configured yet).
+            // Switch back to 0 once SMTP is set up if email verification is wanted.
+            'confirmed'                     => 1,
+            'IsActive'                      => 1,
             'fcm_token'                     => '',
             'lat'                           => $request->lat,
             'long'                          => $request->long,
@@ -64,7 +66,7 @@ class AuthController extends Controller
 
         $data['user'] = UserHelper::user_stats($user);
         $object       = UserHelper::user_array($user);
-        $this->dispatch(new SendConfirmationEmail($user, $rawCode));
+        if (config('mail.from.address')) { $this->dispatch(new SendConfirmationEmail($user, $rawCode)); }
         $reference = 'users/' . $user->id;
         FireBaseRealTimeDatabase::StoreData($reference, $object);
 
@@ -133,7 +135,12 @@ class AuthController extends Controller
             // access_token is not in $fillable; assign directly so mass-assignment
             // can never set it from request input.
             $user->access_token = $token;
-            $user->fcm_token    = $request->fcm_token;
+            // Web logins (platform=web) carry no real push token. Don't let a
+            // browser sign-in overwrite the user's phone FCM token, which would
+            // silently break mobile push notifications for that user.
+            if ($request->fcm_token && $request->fcm_token !== 'web' && $request->input('platform') !== 'web') {
+                $user->fcm_token = $request->fcm_token;
+            }
             // Both apps send their position at login. Persisting it makes a
             // freshly signed-in rider immediately visible to auto-dispatch
             // (which selects riders by users.lat/long + updated_at freshness).
@@ -347,7 +354,7 @@ class AuthController extends Controller
             $user->confirmation_code            = Hash::make($rawCode);
             $user->confirmation_code_expires_at = now()->addMinutes(30);
             $user->save();
-            $this->dispatch(new SendConfirmationEmail($user, $rawCode));
+            if (config('mail.from.address')) { $this->dispatch(new SendConfirmationEmail($user, $rawCode)); }
         }
 
         // Generic response in both branches to prevent user enumeration.
@@ -447,8 +454,10 @@ class AuthController extends Controller
             'password'                      => Hash::make($request['password']),
             'confirmation_code'             => Hash::make($rawCode),
             'confirmation_code_expires_at'  => now()->addMinutes(30),
-            'confirmed'                     => 0,
-            'IsActive'                      => 0,
+            // Auto-confirm new signups (email delivery not configured yet).
+            // Switch back to 0 once SMTP is set up if email verification is wanted.
+            'confirmed'                     => 1,
+            'IsActive'                      => 1,
             'fcm_token'                     => '',
             'lat'                           => $request->lat,
             'long'                          => $request->long,
@@ -458,7 +467,7 @@ class AuthController extends Controller
 
         $data['user'] = UserHelper::user_stats($user);
         $object       = UserHelper::user_array($user);
-        $this->dispatch(new SendConfirmationEmail($user, $rawCode));
+        if (config('mail.from.address')) { $this->dispatch(new SendConfirmationEmail($user, $rawCode)); }
         FireBaseRealTimeDatabase::StoreData('users/' . $user->id, $object);
 
         return response()->json([

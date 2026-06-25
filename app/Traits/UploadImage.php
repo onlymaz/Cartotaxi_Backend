@@ -19,6 +19,8 @@ trait UploadImage
         'image/png'  => 'png',
         'image/gif'  => 'gif',
         'image/webp' => 'webp',
+        'image/x-icon'             => 'ico',
+        'image/vnd.microsoft.icon' => 'ico',
     ];
 
     /** Maximum upload size: 4 MB. Form requests can apply a tighter cap. */
@@ -63,13 +65,13 @@ trait UploadImage
         $filename  = Str::random(40) . '.' . $extension;
         $directory = 'uploads/media';
 
-        // storeAs on the `public` disk writes to storage/app/public/uploads/media/
-        // and returns the relative path. The web URL is reachable via the
-        // `php artisan storage:link` symlink only — the storage directory itself
-        // is not publicly executable.
-        $path = $file->storeAs($directory, $filename, 'public');
+        // Move the validated image into public/uploads/media/ so it is served
+        // directly at /uploads/media/<file> — the path the app's views build
+        // via url($setting->site_logo). Only whitelisted image MIME types reach
+        // this point, so storing under the public directory is safe.
+        $file->move(public_path($directory), $filename);
 
-        return $path;
+        return $directory . '/' . $filename;
     }
 
     /**

@@ -182,7 +182,8 @@ return [
          * Package Service Providers...
          */
         Kreait\Laravel\Firebase\ServiceProvider::class,
-        BeyondCode\QueryDetector\QueryDetectorServiceProvider::class,
+        // QueryDetector is a dev-only tool; it auto-registers when installed.
+        // Hardcoding it here broke production (--no-dev) boots, so it's removed.
         /*
          * Application Service Providers...
          */
