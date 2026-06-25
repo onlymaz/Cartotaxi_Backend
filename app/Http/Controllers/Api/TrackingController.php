@@ -26,9 +26,13 @@ class TrackingController extends Controller
 
         $user = $request->user();
         if (!empty($user)) {
+            // Write lat/long as STRINGS to match how the apps read them from
+            // Firebase (getValue(String)) and how the rest of the backend
+            // stores them. Writing floats here made live driver tracking read
+            // null on the customer app, so the car marker never moved.
             $data = [
-                'lat'  => (float) $request->lat,
-                'long' => (float) $request->long,
+                'lat'  => (string) $request->lat,
+                'long' => (string) $request->long,
             ];
             $reference = 'users/' . $user->id;
             FireBaseRealTimeDatabase::StoreData($reference, $data);
