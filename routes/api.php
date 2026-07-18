@@ -13,10 +13,10 @@ Route::group(['prefix' => 'v1'], function () {
     // Auth endpoints — tight rate limits to deter brute force / enumeration
     Route::post('register', 'Api\AuthController@register')->middleware('throttle:5,1');
     Route::post('register/confirmation', 'Api\AuthController@codeConfirmed')->middleware('throttle:10,1');
-    Route::post('login', 'Api\AuthController@login')->middleware('throttle:5,1');
+    Route::post('login', 'Api\AuthController@login')->middleware('throttle:login');
     Route::post('re-send-confirmation-code', 'Api\AuthController@ReSendConfirmationCode')->middleware('throttle:3,1');
-    Route::post('password/email', 'Api\ResetPasswordController@create')->middleware('throttle:3,60');
-    Route::post('password/reset', 'Api\ResetPasswordController@store')->middleware('throttle:5,60');
+    Route::post('password/email', 'Api\ResetPasswordController@create')->middleware('throttle:password-reset-request');
+    Route::post('password/reset', 'Api\ResetPasswordController@store')->middleware('throttle:password-reset-confirm');
 
     // Public metadata
     Route::match(['get', 'post'], 'settings/allowed-area', 'Api\SettingsController@AllowedArea');
@@ -29,8 +29,10 @@ Route::group(['prefix' => 'v1'], function () {
     // ── Legacy paths the shipped iOS apps call (public) ──────────────────
     Route::post('social-login', 'Api\AuthController@socialLogin')->middleware('throttle:10,1');
     Route::post('business-account', 'Api\AuthController@registerBusiness')->middleware('throttle:5,1');
-    Route::post('reset-password', 'Api\ResetPasswordController@create')->middleware('throttle:3,60');
-    Route::post('reset-password/store', 'Api\ResetPasswordController@store')->middleware('throttle:5,60');
+    // Legacy Android endpoints used by the currently shipped user app. Keep
+    // them on the same account-aware limiters as the modern password routes.
+    Route::post('reset-password', 'Api\ResetPasswordController@create')->middleware('throttle:password-reset-request');
+    Route::post('reset-password/store', 'Api\ResetPasswordController@store')->middleware('throttle:password-reset-confirm');
 });
 
 Route::group(['prefix' => 'v1', 'middleware' => ['authApi']], function () {

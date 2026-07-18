@@ -37,10 +37,22 @@ class AppServiceProvider extends ServiceProvider
         // value with supports_credentials=true, so a stale dev value would
         // let a developer browser carry credentialed CORS requests in prod.
         $env      = config('app.env');
-        $frontend = (string) env('FRONTEND_URL', '');
-        $isLocalish = $frontend === ''
-            || str_contains($frontend, 'localhost')
-            || str_contains($frontend, '127.0.0.1');
+        // Read the already-resolved CORS configuration instead of calling env()
+        // at runtime. Laravel intentionally stops loading .env after
+        // `config:cache`, so a direct env() call incorrectly looked empty in
+        // production and caused every HTTP request to fail with a 500.
+        $frontendOrigins = (array) config('cors.allowed_origins', []);
+        $isLocalish = empty($frontendOrigins);
+
+        foreach ($frontendOrigins as $frontendOrigin) {
+            $frontendOrigin = (string) $frontendOrigin;
+            if ($frontendOrigin === ''
+                || str_contains($frontendOrigin, 'localhost')
+                || str_contains($frontendOrigin, '127.0.0.1')) {
+                $isLocalish = true;
+                break;
+            }
+        }
 
         // Skip the guard inside `php artisan` so a misconfigured local env
         // doesn't block migrate / queue:work / cache:clear. The check fires

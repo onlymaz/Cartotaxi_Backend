@@ -10,6 +10,7 @@ use Firebase\JWT\ExpiredException;
 use Firebase\JWT\SignatureInvalidException;
 use Firebase\JWT\BeforeValidException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class ApiMiddleware
 {
@@ -35,6 +36,34 @@ class ApiMiddleware
         }
 
         $token = $parts[1];
+
+        // Production previously issued opaque bearer tokens. Existing app
+        // installs keep that value in SharedPreferences across APK upgrades,
+        // so rejecting every non-JWT token breaks the first protected action
+        // (normally booking) even though the user has a valid saved session.
+        // Accept only an exact, non-empty token still stored for an active
+        // account, and return a signed JWT for the upgraded Android app to
+        // persist. Keep the stored legacy token during the migration so older
+        // installed builds continue working until users update.
+        if (substr_count($token, '.') !== 2) {
+            $legacyUser = strlen($token) >= 20
+                ? User::where('access_token', $token)->where('IsActive', 1)->first()
+                : null;
+
+            if (!$legacyUser) {
+                Log::warning('Legacy bearer token rejected');
+                return $this->unauthorised();
+            }
+
+            $request->merge(['user' => $legacyUser]);
+            $request->setUserResolver(function () use ($legacyUser) {
+                return $legacyUser;
+            });
+
+            $response = $next($request);
+            $response->headers->set('X-Access-Token', $this->issueJwt($legacyUser, $key));
+            return $response;
+        }
 
         try {
             // firebase/php-jwt v6+ requires a Key object instead of a bare string + array
@@ -88,5 +117,21 @@ class ApiMiddleware
             'status'   => false,
             'messages' => 'Unauthorized',
         ], 401);
+    }
+
+    private function issueJwt(User $user, string $key): string
+    {
+        $now = now()->timestamp;
+
+        return JWT::encode([
+            'iss'   => config('app.url'),
+            'sub'   => $user->id,
+            'iat'   => $now,
+            'nbf'   => $now,
+            'exp'   => $now + (int) config('app.jwt_ttl', 86400),
+            'jti'   => (string) Str::uuid(),
+            'email' => $user->email,
+            'id'    => $user->id,
+        ], $key, 'HS256');
     }
 }

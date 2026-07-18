@@ -11,6 +11,7 @@ use App\Utilities\UserHelper;
 use Firebase\JWT\JWT;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
 use App\Models\Payment;
@@ -613,10 +614,46 @@ class AuthController extends Controller
             ];
         }
 
-        if ($provider === 'facebook' || $provider === 'google') {
-            $url = $provider === 'facebook'
-                ? 'https://graph.facebook.com/me?fields=id,email,first_name,last_name&access_token=' . urlencode($token)
-                : 'https://www.googleapis.com/oauth2/v3/userinfo?access_token=' . urlencode($token);
+        if ($provider === 'google') {
+            $expectedAudience = (string) config('services.google.client_id');
+            if ($expectedAudience === '') {
+                throw new \RuntimeException('Google OAuth client ID is not configured');
+            }
+
+            $jwks = Cache::remember('google-oauth-jwks', now()->addMinutes(5), function () {
+                $json = @file_get_contents('https://www.googleapis.com/oauth2/v3/certs');
+                $keys = $json === false ? null : json_decode($json, true);
+                if (!is_array($keys) || empty($keys['keys'])) {
+                    throw new \RuntimeException('Could not load Google signing keys');
+                }
+
+                return $keys;
+            });
+
+            // The Android app sends GoogleSignInAccount.idToken. Verify its
+            // signature and expiry locally, then pin issuer + audience to this
+            // backend's web OAuth client before trusting the identity claims.
+            $claims = (array) JWT::decode($token, \Firebase\JWT\JWK::parseKeySet($jwks));
+            $issuer = $claims['iss'] ?? '';
+            $audiences = (array) ($claims['aud'] ?? []);
+            if (!in_array($issuer, ['accounts.google.com', 'https://accounts.google.com'], true)
+                || !in_array($expectedAudience, $audiences, true)
+                || empty($claims['sub'])
+                || empty($claims['email'])
+                || filter_var($claims['email_verified'] ?? false, FILTER_VALIDATE_BOOLEAN) !== true) {
+                throw new \RuntimeException('Google ID token claims rejected');
+            }
+
+            return [
+                'id'         => $claims['sub'],
+                'email'      => $claims['email'],
+                'first_name' => $claims['given_name'] ?? null,
+                'last_name'  => $claims['family_name'] ?? null,
+            ];
+        }
+
+        if ($provider === 'facebook') {
+            $url = 'https://graph.facebook.com/me?fields=id,email,first_name,last_name&access_token=' . urlencode($token);
 
             $response = json_decode(file_get_contents($url), true);
             $id = $response['id'] ?? $response['sub'] ?? null;
